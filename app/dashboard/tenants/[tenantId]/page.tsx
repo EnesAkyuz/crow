@@ -9,6 +9,7 @@ import { VaultSessionList } from "@/components/dashboard/vault-session-list";
 import { CreateExtractionSchemaDialog } from "@/components/dashboard/create-extraction-schema-dialog";
 import { ExtractionSchemaList } from "@/components/dashboard/extraction-schema-list";
 import { TenantTabs } from "@/components/dashboard/tenant-tabs";
+import { ApiKeyManager } from "@/components/dashboard/api-key-manager";
 import { deleteTenantInvite } from "@/app/actions";
 import {
   SidebarInset,
@@ -28,6 +29,8 @@ import { Tables } from "@/types";
 
 type TenantWithOrg = Tables<"tenants"> & {
   organizations?: { id: string; name: string } | null;
+  api_key_prefix?: string | null;
+  api_key_created_at?: string | null;
 };
 
 type TenantInvite = Tables<"tenant_invites">;
@@ -399,6 +402,88 @@ export default async function TenantManagePage({
                     vaultSessions={tenantVaultSessions}
                   />
                 </section>
+              </div>
+            }
+            apiContent={
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-widest">
+                    Agent API
+                  </h2>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    End-to-end encrypted API for AI agents to access extracted
+                    data
+                  </p>
+                </div>
+
+                <ApiKeyManager
+                  tenantId={tenantWithOrg.id}
+                  tenantName={tenantWithOrg.name}
+                  apiKeyPrefix={tenantWithOrg.api_key_prefix ?? null}
+                  apiKeyCreatedAt={tenantWithOrg.api_key_created_at ?? null}
+                />
+
+                <div className="border border-border/50 bg-card p-4 space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    How It Works
+                  </h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <div className="text-xs font-bold uppercase tracking-widest">
+                        1. Generate Key
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Generate an API key for this client. The key is used for
+                        both authentication AND decryption.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-xs font-bold uppercase tracking-widest">
+                        2. Store Data
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Extract data from documents or web pages. Values are
+                        encrypted with your key before storage.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-xs font-bold uppercase tracking-widest">
+                        3. Agent Access
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Your AI agent calls the API with the key. Data is
+                        decrypted on-demand — we never see plaintext.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border border-border/50 bg-muted/30 p-4 font-mono text-xs space-y-3">
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-sans font-bold">
+                    Example Request
+                  </div>
+                  <pre className="text-[10px] overflow-x-auto">
+                    {`curl -X GET "http://127.0.0.1:3000/api/agent/extract?latest=true" \\
+  -H "Authorization: Bearer crow_your_api_key"`}
+                  </pre>
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-sans font-bold mt-4">
+                    Example Response
+                  </div>
+                  <pre className="text-[10px] overflow-x-auto">
+                    {`{
+  "success": true,
+  "extraction": {
+    "id": "uuid",
+    "source": "invoice.pdf",
+    "extractedAt": "2024-01-15T10:30:00Z"
+  },
+  "data": {
+    "invoice_total": "$1,234.56",
+    "vendor_name": "Acme Corp"
+  }
+}`}
+                  </pre>
+                </div>
               </div>
             }
           />

@@ -9,6 +9,7 @@ import {
   Sparkles,
   User,
   Monitor,
+  BookOpen,
 } from "lucide-react";
 import { CheckExpiringSessionsButton } from "@/components/dashboard/check-expiring-sessions-button";
 
@@ -112,6 +113,19 @@ export function AppSidebar({ user }: { user: any }) {
             </h4>
             <SidebarMenuItem>
               <CheckExpiringSessionsButton variant="sidebar" />
+            </SidebarMenuItem>
+          </div>
+          <div className="px-2 py-2 mt-4">
+            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Developers
+            </h4>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="API Docs" className="h-10">
+                <a href="/dashboard/docs">
+                  <BookOpen className="size-4" />
+                  <span className="font-medium">API Docs</span>
+                </a>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           </div>
         </SidebarMenu>

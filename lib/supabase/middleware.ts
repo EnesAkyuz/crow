@@ -37,6 +37,11 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Allow public API routes (agent API uses its own auth via API keys)
+  if (request.nextUrl.pathname.startsWith("/api/agent")) {
+    return supabaseResponse;
+  }
+
   if (
     !user &&
     !request.nextUrl.pathname.startsWith("/login") &&

@@ -34,6 +34,51 @@ export type Database = {
   };
   public: {
     Tables: {
+      api_usage_logs: {
+        Row: {
+          created_at: string;
+          endpoint: string;
+          extraction_id: string | null;
+          id: string;
+          ip_address: string | null;
+          tenant_id: string;
+          user_agent: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          endpoint: string;
+          extraction_id?: string | null;
+          id?: string;
+          ip_address?: string | null;
+          tenant_id: string;
+          user_agent?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          endpoint?: string;
+          extraction_id?: string | null;
+          id?: string;
+          ip_address?: string | null;
+          tenant_id?: string;
+          user_agent?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_logs_extraction_id_fkey";
+            columns: ["extraction_id"];
+            isOneToOne: false;
+            referencedRelation: "document_extractions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "api_usage_logs_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       document_extractions: {
         Row: {
           created_at: string;
@@ -382,6 +427,9 @@ export type Database = {
       };
       tenants: {
         Row: {
+          api_key_created_at: string | null;
+          api_key_hash: string | null;
+          api_key_prefix: string | null;
           created_at: string | null;
           id: string;
           name: string;
@@ -389,6 +437,9 @@ export type Database = {
           updated_at: string | null;
         };
         Insert: {
+          api_key_created_at?: string | null;
+          api_key_hash?: string | null;
+          api_key_prefix?: string | null;
           created_at?: string | null;
           id?: string;
           name: string;
@@ -396,6 +447,9 @@ export type Database = {
           updated_at?: string | null;
         };
         Update: {
+          api_key_created_at?: string | null;
+          api_key_hash?: string | null;
+          api_key_prefix?: string | null;
           created_at?: string | null;
           id?: string;
           name?: string;

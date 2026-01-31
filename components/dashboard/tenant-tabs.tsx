@@ -1,18 +1,20 @@
 "use client";
 
-import { Users, KeyRound, FileJson } from "lucide-react";
+import { Users, KeyRound, FileJson, Key } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TenantTabsProps {
   membersContent: React.ReactNode;
   sessionVaultContent: React.ReactNode;
   documentVaultContent: React.ReactNode;
+  apiContent: React.ReactNode;
 }
 
 export function TenantTabs({
   membersContent,
   sessionVaultContent,
   documentVaultContent,
+  apiContent,
 }: TenantTabsProps) {
   return (
     <Tabs defaultValue="members" className="w-full">
@@ -38,6 +40,13 @@ export function TenantTabs({
           <FileJson className="w-3 h-3 mr-2" />
           Document Vault
         </TabsTrigger>
+        <TabsTrigger
+          value="api"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3 text-[10px] uppercase tracking-widest font-bold"
+        >
+          <Key className="w-3 h-3 mr-2" />
+          Agent API
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="members" className="mt-6">
@@ -50,6 +59,10 @@ export function TenantTabs({
 
       <TabsContent value="documents" className="mt-6">
         {documentVaultContent}
+      </TabsContent>
+
+      <TabsContent value="api" className="mt-6">
+        {apiContent}
       </TabsContent>
     </Tabs>
   );

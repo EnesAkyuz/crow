@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { generateApiKey, hashApiKey, getApiKeyPrefix } from "@/lib/encryption";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -573,5 +574,84 @@ export async function toggleExtractionSchemaActive(formData: FormData) {
   }
 
   revalidatePath(`/dashboard/tenants/${data.tenant_id}`);
+  return { success: true };
+}
+
+// API Key Management
+export async function generateTenantApiKey(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const tenantId = formData.get("tenantId") as string;
+
+  if (!tenantId) {
+    return { error: "Missing tenant ID" };
+  }
+
+  // Generate a new API key
+  const apiKey = generateApiKey();
+  const keyHash = hashApiKey(apiKey);
+  const keyPrefix = getApiKeyPrefix(apiKey);
+
+  // Update the tenant with the new key hash
+  const { error } = await supabase
+    .from("tenants")
+    .update({
+      api_key_hash: keyHash,
+      api_key_prefix: keyPrefix,
+      api_key_created_at: new Date().toISOString(),
+    })
+    .eq("id", tenantId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/dashboard/tenants/${tenantId}`);
+
+  // Return the actual key - this is the ONLY time it's visible!
+  return {
+    success: true,
+    apiKey, // The user must save this - we can't retrieve it later
+    message: "Save this key now! It cannot be retrieved again.",
+  };
+}
+
+export async function revokeTenantApiKey(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const tenantId = formData.get("tenantId") as string;
+
+  if (!tenantId) {
+    return { error: "Missing tenant ID" };
+  }
+
+  const { error } = await supabase
+    .from("tenants")
+    .update({
+      api_key_hash: null,
+      api_key_prefix: null,
+      api_key_created_at: null,
+    })
+    .eq("id", tenantId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/dashboard/tenants/${tenantId}`);
   return { success: true };
 }
