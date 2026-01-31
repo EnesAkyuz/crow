@@ -17,7 +17,10 @@ import {
   CheckCircle,
   XCircle,
   MoreHorizontal,
+  Wand2,
+  Pencil,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +44,12 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/types";
 
-type StepType = "web_scrape" | "document_extract" | "webhook" | "email";
+type StepType =
+  | "web_scrape"
+  | "document_extract"
+  | "ai_transform"
+  | "webhook"
+  | "email";
 
 interface StepConfigData {
   url?: string;
@@ -50,6 +58,8 @@ interface StepConfigData {
   enableHandoff?: boolean;
   webhookUrl?: string;
   email?: string;
+  // AI Transform
+  transformPrompt?: string;
 }
 
 interface WorkflowStep {
@@ -101,6 +111,11 @@ const stepTypeInfo: Record<
     icon: FileText,
     color: "text-purple-600 bg-purple-500/10",
   },
+  ai_transform: {
+    label: "AI Transform",
+    icon: Wand2,
+    color: "text-purple-600 bg-purple-500/10",
+  },
   webhook: {
     label: "Webhook",
     icon: Send,
@@ -120,7 +135,12 @@ function StepConfig({
   vaultSessions,
   onUpdate,
   onDelete,
+  onTest,
   isLast,
+  testResult,
+  isTesting,
+  previousStepResult,
+  isTestMode = true,
 }: {
   step: WorkflowStep;
   index: number;
@@ -128,10 +148,25 @@ function StepConfig({
   vaultSessions: VaultSession[];
   onUpdate: (config: StepConfigData) => void;
   onDelete: () => void;
+  onTest: () => void;
   isLast: boolean;
+  testResult?: {
+    success: boolean;
+    data?: Record<string, unknown>;
+    error?: string;
+  };
+  isTesting: boolean;
+  previousStepResult?: Record<string, unknown> | null;
+  isTestMode?: boolean;
 }) {
   const info = stepTypeInfo[step.type];
   const Icon = info.icon;
+  const needsPreviousData =
+    step.type === "ai_transform" ||
+    step.type === "webhook" ||
+    step.type === "email";
+  const hasPreviousData =
+    previousStepResult && Object.keys(previousStepResult).length > 0;
 
   return (
     <div className="relative">
@@ -148,15 +183,54 @@ function StepConfig({
               {info.label}
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onDelete}
-            className="h-8 w-8 text-destructive hover:text-destructive"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onTest}
+              disabled={isTesting || (needsPreviousData && !hasPreviousData)}
+              className="h-7 px-2 text-[10px] uppercase tracking-widest font-bold"
+              title={
+                needsPreviousData && !hasPreviousData
+                  ? "Run previous steps first to get input data"
+                  : "Test this step"
+              }
+            >
+              {isTesting ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <>
+                  <Play className="w-3 h-3 mr-1" />
+                  Test
+                </>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              className="h-8 w-8 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
+
+        {/* Previous step data indicator */}
+        {needsPreviousData && (
+          <div
+            className={`text-[10px] px-2 py-1 rounded ${hasPreviousData ? "bg-green-500/10 text-green-600" : "bg-yellow-500/10 text-yellow-600"}`}
+          >
+            {hasPreviousData ? (
+              <span>
+                ✓ Has input data from previous step (
+                {Object.keys(previousStepResult || {}).length} fields)
+              </span>
+            ) : (
+              <span>⚠ Run previous steps first to provide input data</span>
+            )}
+          </div>
+        )}
 
         {step.type === "web_scrape" && (
           <div className="space-y-3">
@@ -267,6 +341,65 @@ function StepConfig({
             />
           </div>
         )}
+
+        {step.type === "ai_transform" && (
+          <div className="grid gap-2">
+            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Transform Instructions
+            </Label>
+            <Textarea
+              value={step.config.transformPrompt || ""}
+              onChange={(e) =>
+                onUpdate({ ...step.config, transformPrompt: e.target.value })
+              }
+              placeholder="Restructure this data as a summary with bullet points...\n\nOr: Extract only the price and product name fields...\n\nOr: Convert to a markdown table format..."
+              rows={4}
+              className="text-sm"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              <Sparkles className="w-3 h-3 inline mr-1 text-purple-500" />
+              Uses AI to transform accumulated data from previous steps
+            </p>
+          </div>
+        )}
+
+        {/* Test Result Display */}
+        {testResult && (
+          <div
+            className={`mt-3 p-3 text-xs font-mono rounded border ${testResult.success ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"}`}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              {testResult.success ? (
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              ) : (
+                <XCircle className="w-4 h-4 text-red-500" />
+              )}
+              <span
+                className={`text-[10px] uppercase tracking-widest font-bold ${testResult.success ? "text-green-600" : "text-red-600"}`}
+              >
+                {testResult.success ? "Test Passed" : "Test Failed"}
+              </span>
+              {testResult.success && testResult.data && (
+                <span className="text-[10px] text-muted-foreground ml-auto">
+                  {Object.keys(testResult.data).length} fields
+                </span>
+              )}
+            </div>
+            {testResult.error && (
+              <p className="text-red-600 text-[10px]">{testResult.error}</p>
+            )}
+            {testResult.data && isTestMode && (
+              <pre className="text-[10px] overflow-auto max-h-48 p-2 bg-background/50 rounded">
+                {JSON.stringify(testResult.data, null, 2)}
+              </pre>
+            )}
+            {testResult.data && !isTestMode && (
+              <p className="text-[10px] text-muted-foreground italic">
+                🔒 Data extracted successfully but hidden in production mode
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {!isLast && (
@@ -290,8 +423,20 @@ export function WorkflowsTab({
 
   // New workflow form
   const [isCreating, setIsCreating] = useState(false);
+  const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(
+    null,
+  );
   const [name, setName] = useState("");
   const [steps, setSteps] = useState<WorkflowStep[]>([]);
+
+  // Step testing state
+  const [testingStep, setTestingStep] = useState<string | null>(null);
+  const [stepResults, setStepResults] = useState<
+    Record<
+      string,
+      { success: boolean; data?: Record<string, unknown>; error?: string }
+    >
+  >({});
 
   const fetchWorkflows = useCallback(async () => {
     const supabase = createClient();
@@ -339,6 +484,261 @@ export function WorkflowsTab({
 
   const deleteStep = (id: string) => {
     setSteps(steps.filter((s) => s.id !== id));
+    // Clear test result for deleted step
+    setStepResults((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  // Get accumulated data up to a specific step index
+  const getAccumulatedData = (
+    upToIndex: number,
+  ): Record<string, unknown> | null => {
+    let accumulated: Record<string, unknown> | null = null;
+    for (let i = 0; i < upToIndex; i++) {
+      const stepId = steps[i]?.id;
+      if (stepId && stepResults[stepId]?.success && stepResults[stepId]?.data) {
+        accumulated = { ...(accumulated || {}), ...stepResults[stepId].data };
+      }
+    }
+    return accumulated;
+  };
+
+  // Test a single step
+  const testStep = async (stepIndex: number) => {
+    const step = steps[stepIndex];
+    if (!step) return;
+
+    setTestingStep(step.id);
+    const previousData = getAccumulatedData(stepIndex);
+
+    try {
+      if (step.type === "web_scrape") {
+        if (!step.config.url || !step.config.schemaId) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: { success: false, error: "URL and Schema are required" },
+          }));
+          setTestingStep(null);
+          return;
+        }
+
+        const response = await fetch("/api/extract-web-agentic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: step.config.url,
+            schemaId: step.config.schemaId,
+            sessionId: step.config.sessionId,
+            enableHandoff: step.config.enableHandoff,
+            testMode: true, // Return actual extracted data for testing
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: false,
+              error: data.error || "Web scrape failed",
+            },
+          }));
+        } else {
+          // Use extractedData if available (test mode), otherwise store the response metadata
+          const resultData = data.extractedData || {
+            fieldNames: data.fieldNames,
+            extractionId: data.extractionId,
+          };
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: { success: true, data: resultData },
+          }));
+          toast.success("Web scrape test passed!");
+          if (data.handoff?.successful > 0) {
+            toast.success(`🪄 Extracted ${data.handoff.successful} PDF(s)`);
+          }
+        }
+      }
+
+      if (step.type === "ai_transform") {
+        if (!step.config.transformPrompt) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: false,
+              error: "Transform prompt is required",
+            },
+          }));
+          setTestingStep(null);
+          return;
+        }
+
+        if (!previousData) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: false,
+              error: "No input data from previous steps",
+            },
+          }));
+          setTestingStep(null);
+          return;
+        }
+
+        const response = await fetch("/api/ai/transform", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            data: previousData,
+            prompt: step.config.transformPrompt,
+          }),
+        });
+
+        const data = (await response.json()) as {
+          error?: string;
+          data?: Record<string, unknown>;
+        };
+        if (!response.ok) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: false,
+              error: data.error || "AI Transform failed",
+            },
+          }));
+        } else {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: true,
+              data: {
+                ...previousData,
+                ...(data.data || {}),
+                _transformed: true,
+              },
+            },
+          }));
+          toast.success("AI Transform test passed!");
+        }
+      }
+
+      if (step.type === "webhook") {
+        if (!step.config.webhookUrl) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: { success: false, error: "Webhook URL is required" },
+          }));
+          setTestingStep(null);
+          return;
+        }
+
+        const dataToSend = previousData || {
+          test: true,
+          message: "Webhook test from Crow",
+        };
+
+        try {
+          await fetch(step.config.webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dataToSend),
+            mode: "no-cors",
+          });
+          // no-cors means we can't read the response, but it was sent
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: true,
+              data: { sent: true, payload: dataToSend },
+            },
+          }));
+          toast.success("Webhook sent (check your endpoint)");
+        } catch {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: { success: false, error: "Failed to send webhook" },
+          }));
+        }
+      }
+
+      if (step.type === "email") {
+        if (!step.config.email) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: { success: false, error: "Email address is required" },
+          }));
+          setTestingStep(null);
+          return;
+        }
+
+        const dataToSend = previousData || {
+          message: "No data from previous steps",
+        };
+
+        // Send actual test email with [TEST] prefix
+        try {
+          const response = await fetch("/api/send-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              to: step.config.email,
+              subject: "Crow Workflow Extraction Results",
+              data: dataToSend,
+              isTest: true,
+            }),
+          });
+
+          const result = (await response.json()) as {
+            success?: boolean;
+            error?: string;
+            messageId?: string;
+          };
+
+          if (!response.ok) {
+            setStepResults((prev) => ({
+              ...prev,
+              [step.id]: {
+                success: false,
+                error: result.error || "Failed to send email",
+              },
+            }));
+          } else {
+            setStepResults((prev) => ({
+              ...prev,
+              [step.id]: {
+                success: true,
+                data: {
+                  sent: true,
+                  to: step.config.email,
+                  subject: "[TEST] Crow Workflow Extraction Results",
+                  messageId: result.messageId,
+                  payload: dataToSend,
+                },
+              },
+            }));
+            toast.success(`Test email sent to ${step.config.email}`);
+          }
+        } catch {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: { success: false, error: "Failed to send email" },
+          }));
+        }
+      }
+    } catch (err) {
+      setStepResults((prev) => ({
+        ...prev,
+        [step.id]: {
+          success: false,
+          error: err instanceof Error ? err.message : "Test failed",
+        },
+      }));
+    } finally {
+      setTestingStep(null);
+    }
   };
 
   const saveWorkflow = async () => {
@@ -354,25 +754,65 @@ export function WorkflowsTab({
     setSaving(true);
     const supabase = createClient();
 
-    const { error } = await supabase.from("scheduled_workflows").insert({
-      tenant_id: tenantId,
-      name: name.trim(),
-      workflow_definition: steps as unknown as Json,
-      schedule_type: "manual",
-    });
+    if (editingWorkflowId) {
+      // Update existing workflow
+      const { error } = await supabase
+        .from("scheduled_workflows")
+        .update({
+          name: name.trim(),
+          workflow_definition: steps as unknown as Json,
+        })
+        .eq("id", editingWorkflowId);
 
-    setSaving(false);
+      setSaving(false);
 
-    if (error) {
-      toast.error("Failed to save workflow");
-      return;
+      if (error) {
+        toast.error("Failed to update workflow");
+        return;
+      }
+
+      toast.success("Workflow updated!");
+    } else {
+      // Create new workflow
+      const { error } = await supabase.from("scheduled_workflows").insert({
+        tenant_id: tenantId,
+        name: name.trim(),
+        workflow_definition: steps as unknown as Json,
+        schedule_type: "manual",
+      });
+
+      setSaving(false);
+
+      if (error) {
+        toast.error("Failed to save workflow");
+        return;
+      }
+
+      toast.success("Workflow saved!");
     }
 
-    toast.success("Workflow saved!");
     setName("");
     setSteps([]);
+    setStepResults({});
     setIsCreating(false);
+    setEditingWorkflowId(null);
     fetchWorkflows();
+  };
+
+  const editWorkflow = (workflow: SavedWorkflow) => {
+    setEditingWorkflowId(workflow.id);
+    setName(workflow.name);
+    setSteps(workflow.workflow_definition);
+    setStepResults({});
+    setIsCreating(true);
+  };
+
+  const cancelEditing = () => {
+    setIsCreating(false);
+    setEditingWorkflowId(null);
+    setName("");
+    setSteps([]);
+    setStepResults({});
   };
 
   const runWorkflow = async (workflow: SavedWorkflow) => {
@@ -451,7 +891,77 @@ export function WorkflowsTab({
         }
 
         if (step.type === "email" && lastResult) {
-          toast.info("Email notification (demo mode)");
+          if (!step.config.email) {
+            toast.error("Email step missing address");
+            continue;
+          }
+
+          try {
+            const response = await fetch("/api/send-email", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                to: step.config.email,
+                subject: `Crow Workflow: ${workflow.name}`,
+                data: lastResult,
+                isTest: false,
+              }),
+            });
+
+            if (response.ok) {
+              toast.success(`Email sent to ${step.config.email}`);
+            } else {
+              toast.error("Email delivery failed");
+            }
+          } catch {
+            toast.error("Email delivery failed");
+          }
+        }
+
+        if (step.type === "ai_transform" && lastResult) {
+          if (!step.config.transformPrompt) {
+            toast.error("AI Transform step missing prompt");
+            continue;
+          }
+
+          const transformResponse = await fetch("/api/ai/transform", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              data: lastResult,
+              prompt: step.config.transformPrompt,
+            }),
+          });
+
+          const transformData = (await transformResponse.json()) as {
+            error?: string;
+            data?: Record<string, unknown>;
+          };
+          if (!transformResponse.ok) {
+            toast.error(transformData.error || "AI Transform failed");
+
+            const supabase = createClient();
+            await supabase
+              .from("scheduled_workflows")
+              .update({
+                last_run_at: new Date().toISOString(),
+                last_run_status: "failed",
+                last_run_error: transformData.error,
+              })
+              .eq("id", workflow.id);
+
+            setRunning(null);
+            fetchWorkflows();
+            return;
+          }
+
+          // Merge transformed data into lastResult
+          lastResult = {
+            ...lastResult,
+            ...(transformData.data || {}),
+            _transformed: true,
+          };
+          toast.success("AI Transform completed");
         }
       }
 
@@ -532,7 +1042,7 @@ export function WorkflowsTab({
         <Card className="border-border/50 rounded-none shadow-none">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-bold uppercase tracking-wider">
-              New Workflow
+              {editingWorkflowId ? "Edit Workflow" : "New Workflow"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -570,7 +1080,11 @@ export function WorkflowsTab({
                       vaultSessions={vaultSessions}
                       onUpdate={(config) => updateStep(step.id, config)}
                       onDelete={() => deleteStep(step.id)}
+                      onTest={() => testStep(index)}
                       isLast={index === steps.length - 1}
+                      testResult={stepResults[step.id]}
+                      isTesting={testingStep === step.id}
+                      previousStepResult={getAccumulatedData(index)}
                     />
                   ))}
                 </div>
@@ -602,6 +1116,16 @@ export function WorkflowsTab({
                   type="button"
                   variant="outline"
                   size="sm"
+                  onClick={() => addStep("ai_transform")}
+                  className="text-[10px] uppercase tracking-widest"
+                >
+                  <Wand2 className="w-3 h-3 mr-2 text-purple-600" />
+                  AI Transform
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => addStep("email")}
                   className="text-[10px] uppercase tracking-widest"
                 >
@@ -612,34 +1136,46 @@ export function WorkflowsTab({
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setIsCreating(false);
-                  setName("");
-                  setSteps([]);
-                }}
-                className="text-[10px] uppercase tracking-widest font-bold"
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={saveWorkflow}
-                disabled={saving || !name.trim() || steps.length === 0}
-                className="text-[10px] uppercase tracking-widest font-bold"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Workflow"
+            <div className="flex justify-between pt-4 border-t">
+              <div>
+                {Object.keys(stepResults).length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setStepResults({})}
+                    className="text-[10px] uppercase tracking-widest text-muted-foreground"
+                  >
+                    Clear Test Results
+                  </Button>
                 )}
-              </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={cancelEditing}
+                  className="text-[10px] uppercase tracking-widest font-bold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={saveWorkflow}
+                  disabled={saving || !name.trim() || steps.length === 0}
+                  className="text-[10px] uppercase tracking-widest font-bold"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                      {editingWorkflowId ? "Updating..." : "Saving..."}
+                    </>
+                  ) : editingWorkflowId ? (
+                    "Update Workflow"
+                  ) : (
+                    "Save Workflow"
+                  )}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -738,6 +1274,12 @@ export function WorkflowsTab({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => editWorkflow(workflow)}
+                        >
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => deleteWorkflow(workflow.id)}
                           className="text-destructive"

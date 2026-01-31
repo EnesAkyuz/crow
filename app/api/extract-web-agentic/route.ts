@@ -8,6 +8,7 @@ const requestSchema = z.object({
   url: z.string().url(),
   sessionId: z.string().uuid().optional(),
   enableHandoff: z.boolean().optional().default(true), // Auto-extract PDFs found on page
+  testMode: z.boolean().optional().default(false), // Return extracted data in response (for testing)
 });
 
 /**
@@ -23,6 +24,19 @@ function encryptLegacy(data: Record<string, unknown>): string {
  */
 function decryptCookieData(encrypted: string): string {
   return Buffer.from(encrypted, "base64").toString("utf-8");
+}
+
+/**
+ * Normalize cookie data to ensure proper format for Firecrawl
+ */
+function normalizeCookieData(cookieData: string): string {
+  const trimmed = cookieData.trim();
+  // If it looks like it already has cookie format (contains =), return as-is
+  if (trimmed.includes("=")) {
+    return trimmed;
+  }
+  // If it's just a value (likely a JWT), wrap it with a common cookie name
+  return `auth-token=${trimmed}`;
 }
 
 /**
@@ -218,7 +232,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { schemaId, url, sessionId, enableHandoff } = parsed.data;
+  const { schemaId, url, sessionId, enableHandoff, testMode } = parsed.data;
 
   // Fetch the extraction schema with tenant info
   const { data: schema, error: schemaError } = await supabase
@@ -248,7 +262,11 @@ export async function POST(request: Request) {
       .single();
 
     if (vaultSession?.is_active && vaultSession?.encrypted_data) {
-      cookieHeader = decryptCookieData(vaultSession.encrypted_data);
+      const rawCookieData = decryptCookieData(vaultSession.encrypted_data);
+      cookieHeader = normalizeCookieData(rawCookieData);
+      console.log(
+        `[Agentic Extract] Using cookie format: ${cookieHeader.substring(0, 30)}...`,
+      );
     }
   }
 
@@ -308,18 +326,24 @@ export async function POST(request: Request) {
 
   try {
     // Call Firecrawl with extract + include links for handoff detection
+    const firecrawlBody: Record<string, unknown> = {
+      url,
+      formats: ["extract", "links", "markdown"],
+      extract: { schema: extractSchema },
+    };
+
+    // Add headers with cookie if session provided
+    if (cookieHeader) {
+      firecrawlBody.headers = { Cookie: cookieHeader };
+    }
+
     const response = await fetch(`${firecrawlApiUrl}/v1/scrape`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${firecrawlApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        url,
-        formats: ["extract", "links", "markdown"],
-        extract: { schema: extractSchema },
-        headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
-      }),
+      body: JSON.stringify(firecrawlBody),
     });
 
     const data = await response.json();
@@ -417,6 +441,8 @@ export async function POST(request: Request) {
       success: true,
       extractionId: extraction.id,
       fieldNames,
+      // Include actual extracted data in test mode
+      ...(testMode && { extractedData }),
       message: "Web extraction completed",
       handoff:
         handoffResults.length > 0
