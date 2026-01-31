@@ -34,6 +34,119 @@ export type Database = {
   };
   public: {
     Tables: {
+      document_extractions: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          encrypted_data: string;
+          error_message: string | null;
+          extracted_at: string | null;
+          field_names: string[];
+          id: string;
+          reducto_job_id: string | null;
+          schema_id: string;
+          source_filename: string;
+          source_type: string;
+          source_url: string | null;
+          status: string;
+          tenant_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          encrypted_data: string;
+          error_message?: string | null;
+          extracted_at?: string | null;
+          field_names?: string[];
+          id?: string;
+          reducto_job_id?: string | null;
+          schema_id: string;
+          source_filename: string;
+          source_type?: string;
+          source_url?: string | null;
+          status?: string;
+          tenant_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          encrypted_data?: string;
+          error_message?: string | null;
+          extracted_at?: string | null;
+          field_names?: string[];
+          id?: string;
+          reducto_job_id?: string | null;
+          schema_id?: string;
+          source_filename?: string;
+          source_type?: string;
+          source_url?: string | null;
+          status?: string;
+          tenant_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "document_extractions_schema_id_fkey";
+            columns: ["schema_id"];
+            isOneToOne: false;
+            referencedRelation: "extraction_schemas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "document_extractions_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      extraction_schemas: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          fields: Json;
+          id: string;
+          is_active: boolean;
+          name: string;
+          tenant_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          fields?: Json;
+          id?: string;
+          is_active?: boolean;
+          name: string;
+          tenant_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          fields?: Json;
+          id?: string;
+          is_active?: boolean;
+          name?: string;
+          tenant_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "extraction_schemas_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       extractions: {
         Row: {
           created_at: string | null;

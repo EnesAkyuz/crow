@@ -48,6 +48,32 @@ const refreshVaultSessionSchema = z.object({
   expiresAt: z.string().datetime().optional().nullable(),
 });
 
+// Extraction schema schemas
+const extractionFieldSchema = z.object({
+  name: z.string().min(1).max(50),
+  type: z.enum(["string", "number", "date", "boolean"]),
+  description: z.string().max(200).optional(),
+});
+
+const createExtractionSchemaSchema = z.object({
+  tenantId: z.string().uuid(),
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  fields: z.array(extractionFieldSchema).min(1).max(50),
+});
+
+const updateExtractionSchemaSchema = z.object({
+  schemaId: z.string().uuid(),
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional(),
+  fields: z.array(extractionFieldSchema).min(1).max(50).optional(),
+  isActive: z.boolean().optional(),
+});
+
+const deleteExtractionSchemaSchema = z.object({
+  schemaId: z.string().uuid(),
+});
+
 export async function createOrganization(formData: FormData) {
   const supabase = await createClient();
 
@@ -365,6 +391,164 @@ export async function toggleVaultSessionActive(formData: FormData) {
     .from("vault_sessions")
     .update({ is_active: isActive, updated_at: new Date().toISOString() })
     .eq("id", sessionId)
+    .select("tenant_id")
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/dashboard/tenants/${data.tenant_id}`);
+  return { success: true };
+}
+
+// ============ EXTRACTION SCHEMA ACTIONS ============
+
+export async function createExtractionSchema(formData: FormData) {
+  const supabase = await createClient();
+
+  const tenantId = formData.get("tenantId") as string;
+  const name = formData.get("name") as string;
+  const description = formData.get("description") as string | null;
+  const fieldsJson = formData.get("fields") as string;
+
+  let fields: unknown[];
+  try {
+    fields = JSON.parse(fieldsJson);
+  } catch {
+    return { error: "Invalid fields JSON" };
+  }
+
+  const validated = createExtractionSchemaSchema.safeParse({
+    tenantId,
+    name,
+    description: description || undefined,
+    fields,
+  });
+
+  if (!validated.success) {
+    return { error: validated.error.flatten().fieldErrors };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from("extraction_schemas")
+    .insert({
+      tenant_id: validated.data.tenantId,
+      name: validated.data.name,
+      description: validated.data.description,
+      fields: validated.data.fields,
+      created_by: user?.id,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/dashboard/tenants/${validated.data.tenantId}`);
+  return { success: true, data };
+}
+
+export async function updateExtractionSchema(formData: FormData) {
+  const supabase = await createClient();
+
+  const schemaId = formData.get("schemaId") as string;
+  const name = formData.get("name") as string | null;
+  const description = formData.get("description") as string | null;
+  const fieldsJson = formData.get("fields") as string | null;
+  const isActive = formData.get("isActive");
+
+  let fields: unknown[] | undefined;
+  if (fieldsJson) {
+    try {
+      fields = JSON.parse(fieldsJson);
+    } catch {
+      return { error: "Invalid fields JSON" };
+    }
+  }
+
+  const validated = updateExtractionSchemaSchema.safeParse({
+    schemaId,
+    name: name || undefined,
+    description: description || undefined,
+    fields,
+    isActive: isActive !== null ? isActive === "true" : undefined,
+  });
+
+  if (!validated.success) {
+    return { error: validated.error.flatten().fieldErrors };
+  }
+
+  const updateData: Record<string, unknown> = {};
+  if (validated.data.name) updateData.name = validated.data.name;
+  if (validated.data.description !== undefined)
+    updateData.description = validated.data.description;
+  if (validated.data.fields) updateData.fields = validated.data.fields;
+  if (validated.data.isActive !== undefined)
+    updateData.is_active = validated.data.isActive;
+
+  const { data, error } = await supabase
+    .from("extraction_schemas")
+    .update(updateData)
+    .eq("id", validated.data.schemaId)
+    .select("tenant_id")
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/dashboard/tenants/${data.tenant_id}`);
+  return { success: true };
+}
+
+export async function deleteExtractionSchema(formData: FormData) {
+  const supabase = await createClient();
+
+  const schemaId = formData.get("schemaId") as string;
+  const validated = deleteExtractionSchemaSchema.safeParse({ schemaId });
+
+  if (!validated.success) {
+    return { error: "Invalid schema ID" };
+  }
+
+  // Get tenant_id first for revalidation
+  const { data: schema } = await supabase
+    .from("extraction_schemas")
+    .select("tenant_id")
+    .eq("id", validated.data.schemaId)
+    .single();
+
+  const { error } = await supabase
+    .from("extraction_schemas")
+    .delete()
+    .eq("id", validated.data.schemaId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  if (schema) {
+    revalidatePath(`/dashboard/tenants/${schema.tenant_id}`);
+  }
+  return { success: true };
+}
+
+export async function toggleExtractionSchemaActive(formData: FormData) {
+  const supabase = await createClient();
+
+  const schemaId = formData.get("schemaId") as string;
+  const isActive = formData.get("isActive") === "true";
+
+  const { data, error } = await supabase
+    .from("extraction_schemas")
+    .update({ is_active: isActive })
+    .eq("id", schemaId)
     .select("tenant_id")
     .single();
 

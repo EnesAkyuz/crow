@@ -6,6 +6,8 @@ import { NotificationsPopover } from "@/components/dashboard/notifications-popov
 import { InviteMemberDialog } from "@/components/dashboard/invite-member-dialog";
 import { AddVaultSessionDialog } from "@/components/dashboard/add-vault-session-dialog";
 import { VaultSessionList } from "@/components/dashboard/vault-session-list";
+import { CreateExtractionSchemaDialog } from "@/components/dashboard/create-extraction-schema-dialog";
+import { ExtractionSchemaList } from "@/components/dashboard/extraction-schema-list";
 import { deleteTenantInvite } from "@/app/actions";
 import {
   SidebarInset,
@@ -54,6 +56,31 @@ type VaultErrorLog = {
   status_code: number | null;
   request_url: string | null;
   created_at: string | null;
+};
+
+type ExtractionField = {
+  name: string;
+  type: string;
+  description?: string;
+};
+
+type DocumentExtraction = {
+  id: string;
+  source_filename: string;
+  status: string;
+  field_names: string[];
+  extracted_at: string | null;
+  created_at: string;
+};
+
+type ExtractionSchema = {
+  id: string;
+  name: string;
+  description: string | null;
+  fields: ExtractionField[];
+  is_active: boolean;
+  created_at: string;
+  document_extractions?: DocumentExtraction[];
 };
 
 export default async function TenantManagePage({
@@ -160,10 +187,21 @@ export default async function TenantManagePage({
           .limit(50)
       : { data: [] };
 
+  // Fetch extraction schemas with their extractions
+  const { data: extractionSchemas } = await supabase
+    .from("extraction_schemas")
+    .select(
+      "*, document_extractions(id, source_filename, status, field_names, extracted_at, created_at)",
+    )
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: false });
+
   const tenantInvites = (invites || []) as TenantInvite[];
   const tenantMembers = (members || []) as TenantMember[];
   const tenantVaultSessions = (vaultSessions || []) as VaultSession[];
   const tenantErrorLogs = (errorLogs || []) as VaultErrorLog[];
+  const tenantExtractionSchemas = (extractionSchemas ||
+    []) as unknown as ExtractionSchema[];
   const tenantWithOrg = tenant as TenantWithOrg;
 
   return (
@@ -313,6 +351,28 @@ export default async function TenantManagePage({
               sessions={tenantVaultSessions}
               errorLogs={tenantErrorLogs}
             />
+          </section>
+
+          {/* Document Extraction Section */}
+          <section className="border border-border/50 bg-card">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+              <div>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Document Vault
+                </h2>
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                  Encrypted document extractions — values hidden, agents can
+                  access
+                </p>
+              </div>
+              <CreateExtractionSchemaDialog
+                tenantId={tenantWithOrg.id}
+                tenantName={tenantWithOrg.name}
+              />
+            </div>
+            <div className="p-4">
+              <ExtractionSchemaList schemas={tenantExtractionSchemas} />
+            </div>
           </section>
         </div>
       </SidebarInset>
