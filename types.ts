@@ -354,6 +354,74 @@ export type Database = {
         };
         Relationships: [];
       };
+      scheduled_workflows: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          id: string;
+          is_active: boolean;
+          last_run_at: string | null;
+          last_run_error: string | null;
+          last_run_status: string | null;
+          name: string;
+          next_run_at: string | null;
+          run_count: number;
+          schedule_cron: string | null;
+          schedule_interval_minutes: number | null;
+          schedule_type: string;
+          tenant_id: string;
+          updated_at: string;
+          workflow_definition: Json;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean;
+          last_run_at?: string | null;
+          last_run_error?: string | null;
+          last_run_status?: string | null;
+          name: string;
+          next_run_at?: string | null;
+          run_count?: number;
+          schedule_cron?: string | null;
+          schedule_interval_minutes?: number | null;
+          schedule_type: string;
+          tenant_id: string;
+          updated_at?: string;
+          workflow_definition?: Json;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean;
+          last_run_at?: string | null;
+          last_run_error?: string | null;
+          last_run_status?: string | null;
+          name?: string;
+          next_run_at?: string | null;
+          run_count?: number;
+          schedule_cron?: string | null;
+          schedule_interval_minutes?: number | null;
+          schedule_type?: string;
+          tenant_id?: string;
+          updated_at?: string;
+          workflow_definition?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_workflows_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       tenant_invites: {
         Row: {
           created_at: string | null;
@@ -695,6 +763,63 @@ export type Database = {
             columns: ["tenant_id"];
             isOneToOne: false;
             referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      workflow_runs: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          error_message: string | null;
+          id: string;
+          results: Json | null;
+          started_at: string;
+          status: string;
+          tenant_id: string;
+          triggered_by: string;
+          triggered_by_user: string | null;
+          workflow_id: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          error_message?: string | null;
+          id?: string;
+          results?: Json | null;
+          started_at?: string;
+          status: string;
+          tenant_id: string;
+          triggered_by: string;
+          triggered_by_user?: string | null;
+          workflow_id: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          error_message?: string | null;
+          id?: string;
+          results?: Json | null;
+          started_at?: string;
+          status?: string;
+          tenant_id?: string;
+          triggered_by?: string;
+          triggered_by_user?: string | null;
+          workflow_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "workflow_runs_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "workflow_runs_workflow_id_fkey";
+            columns: ["workflow_id"];
+            isOneToOne: false;
+            referencedRelation: "scheduled_workflows";
             referencedColumns: ["id"];
           },
         ];

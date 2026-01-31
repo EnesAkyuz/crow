@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, KeyRound, FileJson, Key } from "lucide-react";
+import { Users, KeyRound, FileJson, Key, BarChart3, Play } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TenantTabsProps {
@@ -8,6 +8,8 @@ interface TenantTabsProps {
   sessionVaultContent: React.ReactNode;
   documentVaultContent: React.ReactNode;
   apiContent: React.ReactNode;
+  analyticsContent: React.ReactNode;
+  workflowsContent: React.ReactNode;
 }
 
 export function TenantTabs({
@@ -15,10 +17,26 @@ export function TenantTabs({
   sessionVaultContent,
   documentVaultContent,
   apiContent,
+  analyticsContent,
+  workflowsContent,
 }: TenantTabsProps) {
   return (
-    <Tabs defaultValue="members" className="w-full">
+    <Tabs defaultValue="analytics" className="w-full">
       <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
+        <TabsTrigger
+          value="analytics"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3 text-[10px] uppercase tracking-widest font-bold"
+        >
+          <BarChart3 className="w-3 h-3 mr-2" />
+          Analytics
+        </TabsTrigger>
+        <TabsTrigger
+          value="workflows"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3 text-[10px] uppercase tracking-widest font-bold"
+        >
+          <Play className="w-3 h-3 mr-2" />
+          Workflows
+        </TabsTrigger>
         <TabsTrigger
           value="members"
           className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3 text-[10px] uppercase tracking-widest font-bold"
@@ -48,6 +66,14 @@ export function TenantTabs({
           Agent API
         </TabsTrigger>
       </TabsList>
+
+      <TabsContent value="analytics" className="mt-6">
+        {analyticsContent}
+      </TabsContent>
+
+      <TabsContent value="workflows" className="mt-6">
+        {workflowsContent}
+      </TabsContent>
 
       <TabsContent value="members" className="mt-6">
         {membersContent}

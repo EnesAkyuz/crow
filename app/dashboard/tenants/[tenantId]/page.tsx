@@ -10,6 +10,8 @@ import { CreateExtractionSchemaDialog } from "@/components/dashboard/create-extr
 import { ExtractionSchemaList } from "@/components/dashboard/extraction-schema-list";
 import { TenantTabs } from "@/components/dashboard/tenant-tabs";
 import { ApiKeyManager } from "@/components/dashboard/api-key-manager";
+import { UsageAnalytics } from "@/components/dashboard/usage-analytics";
+import { WorkflowsTab } from "@/components/dashboard/workflows-tab";
 import { deleteTenantInvite } from "@/app/actions";
 import {
   SidebarInset,
@@ -251,6 +253,32 @@ export default async function TenantManagePage({
 
         <div className="flex flex-1 flex-col p-4 pt-4">
           <TenantTabs
+            analyticsContent={
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-widest">
+                    Usage Analytics
+                  </h2>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    Track extractions, API calls, and activity
+                  </p>
+                </div>
+                <UsageAnalytics tenantId={tenantWithOrg.id} />
+              </div>
+            }
+            workflowsContent={
+              <WorkflowsTab
+                tenantId={tenantWithOrg.id}
+                schemas={tenantExtractionSchemas.map((s) => ({
+                  id: s.id,
+                  name: s.name,
+                }))}
+                vaultSessions={tenantVaultSessions.map((s) => ({
+                  id: s.id,
+                  name: s.name,
+                }))}
+              />
+            }
             membersContent={
               <div className="space-y-6">
                 <div className="flex items-center justify-between">

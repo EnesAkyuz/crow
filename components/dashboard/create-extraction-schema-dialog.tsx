@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, FileJson, GripVertical } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  FileJson,
+  GripVertical,
+  Sparkles,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -43,6 +50,8 @@ export function CreateExtractionSchemaDialog({
 }: CreateExtractionSchemaDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [fields, setFields] = useState<Field[]>([
@@ -125,11 +134,53 @@ export function CreateExtractionSchemaDialog({
     setName("");
     setDescription("");
     setFields([{ name: "", type: "string", description: "" }]);
+    setAiPrompt("");
   };
 
   const handleClose = () => {
     setOpen(false);
     resetForm();
+  };
+
+  const handleAiGenerate = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error("Please describe what you want to extract");
+      return;
+    }
+
+    setAiLoading(true);
+
+    try {
+      const response = await fetch("/api/ai/generate-schema", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: aiPrompt }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        toast.error(data.error || "Failed to generate schema");
+        return;
+      }
+
+      // Apply the generated schema
+      setName(data.schema.name);
+      setDescription(data.schema.description);
+      setFields(
+        data.schema.fields.map((f: any) => ({
+          name: f.name,
+          type: f.type,
+          description: f.description || "",
+        })),
+      );
+
+      toast.success("Schema generated! Review and adjust as needed.");
+    } catch (error) {
+      toast.error("Failed to connect to AI service");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const typeColors: Record<string, string> = {
@@ -166,6 +217,59 @@ export function CreateExtractionSchemaDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-6 py-4">
+          {/* AI Schema Generator */}
+          <div className="p-4 border border-dashed border-purple-500/30 bg-purple-500/5 space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-500" />
+              <Label className="text-[10px] uppercase tracking-widest text-purple-600 font-bold">
+                AI Schema Generator
+              </Label>
+            </div>
+            <div className="flex gap-2">
+              <Textarea
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="Describe what you want to extract, e.g., 'I need to extract invoice data including total amount, vendor name, date, and line items'"
+                rows={2}
+                className="flex-1 text-sm"
+              />
+              <Button
+                type="button"
+                onClick={handleAiGenerate}
+                disabled={aiLoading || !aiPrompt.trim()}
+                className="shrink-0 bg-purple-600 hover:bg-purple-700 text-white text-[10px] uppercase tracking-widest font-bold"
+              >
+                {aiLoading ? (
+                  <>
+                    <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3 h-3 mr-2" />
+                    Generate
+                  </>
+                )}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Describe your extraction needs in plain English. The AI will
+              suggest a schema you can edit.
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground text-[10px] tracking-widest">
+                or build manually
+              </span>
+            </div>
+          </div>
+
           {/* Schema Info */}
           <div className="grid gap-4">
             <div className="grid gap-2">
