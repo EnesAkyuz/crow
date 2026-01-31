@@ -26,6 +26,8 @@ const createVaultSessionSchema = z.object({
   expiresAt: z.string().datetime().optional().nullable(),
   rateLimitPerHour: z.number().int().min(1).max(1000).default(60),
   rateLimitPerDay: z.number().int().min(1).max(10000).default(500),
+  notificationEmail: z.string().email().optional().nullable(),
+  expiryWarningMinutes: z.number().int().min(1).max(10080).default(1440),
 });
 
 const updateVaultSessionSchema = z.object({
@@ -36,6 +38,8 @@ const updateVaultSessionSchema = z.object({
   rateLimitPerHour: z.number().int().min(1).max(1000).optional(),
   rateLimitPerDay: z.number().int().min(1).max(10000).optional(),
   isActive: z.boolean().optional(),
+  notificationEmail: z.string().email().optional().nullable(),
+  expiryWarningMinutes: z.number().int().min(1).max(10080).optional(),
 });
 
 const deleteVaultSessionSchema = z.object({
@@ -206,20 +210,26 @@ export async function createVaultSession(formData: FormData) {
     return { error: "Unauthorized" };
   }
 
+  const rawExpiresAt = formData.get("expiresAt") as string;
+  // Convert datetime-local format (YYYY-MM-DDTHH:mm) to ISO string
+  const expiresAt = rawExpiresAt ? new Date(rawExpiresAt).toISOString() : null;
+
   const rawData = {
     tenantId: formData.get("tenantId") as string,
     name: formData.get("name") as string,
     description: (formData.get("description") as string) || undefined,
     cookieData: formData.get("cookieData") as string,
-    expiresAt: (formData.get("expiresAt") as string) || null,
+    expiresAt,
     rateLimitPerHour: Number(formData.get("rateLimitPerHour")) || 60,
     rateLimitPerDay: Number(formData.get("rateLimitPerDay")) || 500,
+    notificationEmail: (formData.get("notificationEmail") as string) || null,
+    expiryWarningMinutes: Number(formData.get("expiryWarningMinutes")) || 1440,
   };
 
   const validated = createVaultSessionSchema.safeParse(rawData);
 
   if (!validated.success) {
-    return { error: validated.error.errors[0]?.message || "Invalid input" };
+    return { error: validated.error.issues[0]?.message || "Invalid input" };
   }
 
   // Encrypt the cookie data before storing
@@ -235,6 +245,8 @@ export async function createVaultSession(formData: FormData) {
       expires_at: validated.data.expiresAt,
       rate_limit_per_hour: validated.data.rateLimitPerHour,
       rate_limit_per_day: validated.data.rateLimitPerDay,
+      notification_email: validated.data.notificationEmail,
+      expiry_warning_minutes: validated.data.expiryWarningMinutes,
       created_by: user.id,
     })
     .select()
@@ -271,7 +283,7 @@ export async function updateVaultSession(formData: FormData) {
   const validated = updateVaultSessionSchema.safeParse(rawData);
 
   if (!validated.success) {
-    return { error: validated.error.errors[0]?.message || "Invalid input" };
+    return { error: validated.error.issues[0]?.message || "Invalid input" };
   }
 
   const updateData: Record<string, unknown> = {
@@ -313,16 +325,20 @@ export async function updateVaultSession(formData: FormData) {
 export async function refreshVaultSession(formData: FormData) {
   const supabase = await createClient();
 
+  const rawExpiresAt = formData.get("expiresAt") as string;
+  // Convert datetime-local format (YYYY-MM-DDTHH:mm) to ISO string
+  const expiresAt = rawExpiresAt ? new Date(rawExpiresAt).toISOString() : null;
+
   const rawData = {
     sessionId: formData.get("sessionId") as string,
     cookieData: formData.get("cookieData") as string,
-    expiresAt: (formData.get("expiresAt") as string) || null,
+    expiresAt,
   };
 
   const validated = refreshVaultSessionSchema.safeParse(rawData);
 
   if (!validated.success) {
-    return { error: validated.error.errors[0]?.message || "Invalid input" };
+    return { error: validated.error.issues[0]?.message || "Invalid input" };
   }
 
   // Encrypt the new cookie data

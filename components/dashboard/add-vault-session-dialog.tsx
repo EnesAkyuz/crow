@@ -22,6 +22,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface AddVaultSessionDialogProps {
   tenantId: string;
@@ -244,6 +251,56 @@ export function AddVaultSessionDialog({
                   className="text-sm"
                 />
               </div>
+            </div>
+
+            {/* Notification Settings */}
+            <div className="border-t pt-4 mt-2">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3">
+                Expiry Notifications
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label
+                    htmlFor="notificationEmail"
+                    className="text-[10px] uppercase tracking-widest text-muted-foreground"
+                  >
+                    Notify Email
+                  </Label>
+                  <Input
+                    id="notificationEmail"
+                    name="notificationEmail"
+                    type="email"
+                    placeholder="alerts@company.com"
+                    className="text-sm"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label
+                    htmlFor="expiryWarningMinutes"
+                    className="text-[10px] uppercase tracking-widest text-muted-foreground"
+                  >
+                    Warn Before
+                  </Label>
+                  <Select name="expiryWarningMinutes" defaultValue="1440">
+                    <SelectTrigger className="text-sm">
+                      <SelectValue placeholder="Select time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 minutes</SelectItem>
+                      <SelectItem value="10">10 minutes</SelectItem>
+                      <SelectItem value="30">30 minutes</SelectItem>
+                      <SelectItem value="60">1 hour</SelectItem>
+                      <SelectItem value="360">6 hours</SelectItem>
+                      <SelectItem value="1440">24 hours</SelectItem>
+                      <SelectItem value="4320">3 days</SelectItem>
+                      <SelectItem value="10080">1 week</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-2">
+                Get an email alert before the session cookie expires.
+              </p>
             </div>
 
             {error && (

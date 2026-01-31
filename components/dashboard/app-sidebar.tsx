@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  Bell,
   ChevronsUpDown,
   LogOut,
   Plus,
@@ -9,6 +10,7 @@ import {
   User,
   Monitor,
 } from "lucide-react";
+import { CheckExpiringSessionsButton } from "@/components/dashboard/check-expiring-sessions-button";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -102,6 +104,14 @@ export function AppSidebar({ user }: { user: any }) {
                   <span className="font-medium">My Clients</span>
                 </a>
               </SidebarMenuButton>
+            </SidebarMenuItem>
+          </div>
+          <div className="px-2 py-2 mt-4">
+            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Tools
+            </h4>
+            <SidebarMenuItem>
+              <CheckExpiringSessionsButton variant="sidebar" />
             </SidebarMenuItem>
           </div>
         </SidebarMenu>
