@@ -299,29 +299,163 @@ export type Database = {
           },
         ];
       };
-      vault_sessions: {
+      vault_error_logs: {
         Row: {
           created_at: string | null;
-          encrypted_data: string | null;
+          error_message: string | null;
+          error_type: string;
           id: string;
+          request_url: string | null;
+          status_code: number | null;
           tenant_id: string;
-          updated_at: string | null;
+          vault_session_id: string;
         };
         Insert: {
           created_at?: string | null;
-          encrypted_data?: string | null;
+          error_message?: string | null;
+          error_type: string;
           id?: string;
+          request_url?: string | null;
+          status_code?: number | null;
           tenant_id: string;
-          updated_at?: string | null;
+          vault_session_id: string;
         };
         Update: {
           created_at?: string | null;
-          encrypted_data?: string | null;
+          error_message?: string | null;
+          error_type?: string;
           id?: string;
+          request_url?: string | null;
+          status_code?: number | null;
           tenant_id?: string;
-          updated_at?: string | null;
+          vault_session_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "vault_error_logs_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "vault_error_logs_vault_session_id_fkey";
+            columns: ["vault_session_id"];
+            isOneToOne: false;
+            referencedRelation: "vault_sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "vault_error_logs_vault_session_id_fkey";
+            columns: ["vault_session_id"];
+            isOneToOne: false;
+            referencedRelation: "vault_sessions_with_stats";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      vault_rate_limits: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          request_count: number | null;
+          vault_session_id: string;
+          window_start: string;
+          window_type: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          request_count?: number | null;
+          vault_session_id: string;
+          window_start: string;
+          window_type: string;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          request_count?: number | null;
+          vault_session_id?: string;
+          window_start?: string;
+          window_type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "vault_rate_limits_vault_session_id_fkey";
+            columns: ["vault_session_id"];
+            isOneToOne: false;
+            referencedRelation: "vault_sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "vault_rate_limits_vault_session_id_fkey";
+            columns: ["vault_session_id"];
+            isOneToOne: false;
+            referencedRelation: "vault_sessions_with_stats";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      vault_sessions: {
+        Row: {
+          created_at: string | null;
+          created_by: string | null;
+          description: string | null;
+          encrypted_data: string | null;
+          expires_at: string | null;
+          expiry_warning_sent: boolean | null;
+          id: string;
+          is_active: boolean | null;
+          last_used_at: string | null;
+          name: string;
+          rate_limit_per_day: number | null;
+          rate_limit_per_hour: number | null;
+          tenant_id: string;
+          updated_at: string | null;
+          use_count: number | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          created_by?: string | null;
+          description?: string | null;
+          encrypted_data?: string | null;
+          expires_at?: string | null;
+          expiry_warning_sent?: boolean | null;
+          id?: string;
+          is_active?: boolean | null;
+          last_used_at?: string | null;
+          name?: string;
+          rate_limit_per_day?: number | null;
+          rate_limit_per_hour?: number | null;
+          tenant_id: string;
+          updated_at?: string | null;
+          use_count?: number | null;
+        };
+        Update: {
+          created_at?: string | null;
+          created_by?: string | null;
+          description?: string | null;
+          encrypted_data?: string | null;
+          expires_at?: string | null;
+          expiry_warning_sent?: boolean | null;
+          id?: string;
+          is_active?: boolean | null;
+          last_used_at?: string | null;
+          name?: string;
+          rate_limit_per_day?: number | null;
+          rate_limit_per_hour?: number | null;
+          tenant_id?: string;
+          updated_at?: string | null;
+          use_count?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "vault_sessions_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "vault_sessions_tenant_id_fkey";
             columns: ["tenant_id"];
@@ -414,6 +548,45 @@ export type Database = {
           },
         ];
       };
+      vault_sessions_with_stats: {
+        Row: {
+          created_at: string | null;
+          created_by: string | null;
+          daily_requests: number | null;
+          description: string | null;
+          encrypted_data: string | null;
+          errors_last_24h: number | null;
+          expires_at: string | null;
+          expiry_status: string | null;
+          expiry_warning_sent: boolean | null;
+          hourly_requests: number | null;
+          id: string | null;
+          is_active: boolean | null;
+          last_used_at: string | null;
+          name: string | null;
+          rate_limit_per_day: number | null;
+          rate_limit_per_hour: number | null;
+          tenant_id: string | null;
+          updated_at: string | null;
+          use_count: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "vault_sessions_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "vault_sessions_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       is_org_member: { Args: { org_id: string }; Returns: boolean };
@@ -422,6 +595,17 @@ export type Database = {
         Returns: boolean;
       };
       is_tenant_member: { Args: { _tenant_id: string }; Returns: boolean };
+      log_vault_error: {
+        Args: {
+          p_error_message?: string;
+          p_error_type: string;
+          p_request_url?: string;
+          p_session_id: string;
+          p_status_code?: number;
+        };
+        Returns: undefined;
+      };
+      use_vault_session: { Args: { p_session_id: string }; Returns: Json };
     };
     Enums: {
       [_ in never]: never;

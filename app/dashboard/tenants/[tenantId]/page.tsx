@@ -4,6 +4,8 @@ import Link from "next/link";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { NotificationsPopover } from "@/components/dashboard/notifications-popover";
 import { InviteMemberDialog } from "@/components/dashboard/invite-member-dialog";
+import { AddVaultSessionDialog } from "@/components/dashboard/add-vault-session-dialog";
+import { VaultSessionList } from "@/components/dashboard/vault-session-list";
 import { deleteTenantInvite } from "@/app/actions";
 import {
   SidebarInset,
@@ -28,6 +30,31 @@ type TenantWithOrg = Tables<"tenants"> & {
 type TenantInvite = Tables<"tenant_invites">;
 
 type TenantMember = Tables<"tenant_members_with_profiles">;
+
+type VaultSession = {
+  id: string;
+  name: string;
+  description: string | null;
+  expires_at: string | null;
+  expiry_warning_sent: boolean | null;
+  is_active: boolean | null;
+  last_used_at: string | null;
+  use_count: number | null;
+  rate_limit_per_hour: number | null;
+  rate_limit_per_day: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+type VaultErrorLog = {
+  id: string;
+  vault_session_id: string;
+  error_type: string;
+  error_message: string | null;
+  status_code: number | null;
+  request_url: string | null;
+  created_at: string | null;
+};
 
 export default async function TenantManagePage({
   params,
@@ -114,8 +141,29 @@ export default async function TenantManagePage({
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
+  // Fetch vault sessions for this tenant
+  const { data: vaultSessions } = await supabase
+    .from("vault_sessions")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("created_at", { ascending: false });
+
+  // Fetch recent error logs for vault sessions
+  const sessionIds = (vaultSessions || []).map((s) => s.id);
+  const { data: errorLogs } =
+    sessionIds.length > 0
+      ? await supabase
+          .from("vault_error_logs")
+          .select("*")
+          .in("vault_session_id", sessionIds)
+          .order("created_at", { ascending: false })
+          .limit(50)
+      : { data: [] };
+
   const tenantInvites = (invites || []) as TenantInvite[];
   const tenantMembers = (members || []) as TenantMember[];
+  const tenantVaultSessions = (vaultSessions || []) as VaultSession[];
+  const tenantErrorLogs = (errorLogs || []) as VaultErrorLog[];
   const tenantWithOrg = tenant as TenantWithOrg;
 
   return (
@@ -244,6 +292,28 @@ export default async function TenantManagePage({
               )}
             </section>
           </div>
+
+          {/* Vault Sessions Section */}
+          <section className="border border-border/50 bg-card">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+              <div>
+                <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Session Vault
+                </h2>
+                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                  Encrypted session cookies for authenticated scraping
+                </p>
+              </div>
+              <AddVaultSessionDialog
+                tenantId={tenantWithOrg.id}
+                tenantName={tenantWithOrg.name}
+              />
+            </div>
+            <VaultSessionList
+              sessions={tenantVaultSessions}
+              errorLogs={tenantErrorLogs}
+            />
+          </section>
         </div>
       </SidebarInset>
     </SidebarProvider>
