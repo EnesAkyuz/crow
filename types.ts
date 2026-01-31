@@ -79,6 +79,36 @@ export type Database = {
           },
         ];
       };
+      notifications: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          is_read: boolean | null;
+          message: string;
+          title: string;
+          type: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          is_read?: boolean | null;
+          message: string;
+          title: string;
+          type?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          is_read?: boolean | null;
+          message?: string;
+          title?: string;
+          type?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       organization_members: {
         Row: {
           created_at: string | null;
@@ -348,7 +378,42 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      tenant_members_with_profiles: {
+        Row: {
+          avatar_url: string | null;
+          created_at: string | null;
+          email: string | null;
+          full_name: string | null;
+          organization_id: string | null;
+          role: string | null;
+          tenant_id: string | null;
+          tenant_name: string | null;
+          user_id: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tenant_members_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tenant_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tenants_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       is_org_member: { Args: { org_id: string }; Returns: boolean };

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { CreateOrgDialog } from "@/components/dashboard/create-org-dialog";
 import { OrgCard } from "@/components/dashboard/org-card";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
+import { NotificationsPopover } from "@/components/dashboard/notifications-popover";
 import {
   SidebarInset,
   SidebarProvider,
@@ -28,6 +29,7 @@ export default async function DashboardPage({
   // Actually, in the project context we are likely on Next 14 or latest which treats it as object mostly, but let's just assign.
 
   const isJoinedView = view === "joined";
+  const isTenantsView = view === "tenants";
 
   const {
     data: { user },
@@ -43,6 +45,25 @@ export default async function DashboardPage({
     .from("organizations")
     .select("*, tenants(*)")
     .order("created_at", { ascending: false });
+
+  // If in tenants view, fetch invites and active members
+  let tenantInvites: any[] = [];
+  let tenantMembers: any[] = [];
+
+  if (isTenantsView) {
+    const { data: invites } = await supabase
+      .from("tenant_invites")
+      .select("*, tenants(name, organization_id)")
+      .order("created_at", { ascending: false });
+    tenantInvites = invites || [];
+
+    // Fetch active members using the new view
+    const { data: members } = await supabase
+      .from("tenant_members_with_profiles")
+      .select("*")
+      .order("created_at", { ascending: false });
+    tenantMembers = members || [];
+  }
 
   if (error) {
     const errorString = JSON.stringify(error);
@@ -64,7 +85,7 @@ export default async function DashboardPage({
     <SidebarProvider>
       <AppSidebar user={user} />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b border-border/50">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
@@ -76,27 +97,139 @@ export default async function DashboardPage({
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
                   <BreadcrumbPage>
-                    {isJoinedView ? "My Clients" : "My Clusters"}
+                    {isJoinedView
+                      ? "My Clients"
+                      : isTenantsView
+                        ? "Manage Tenants"
+                        : "My Clusters"}
                   </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+          </div>
+          <div className="px-4">
+            <NotificationsPopover />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="flex items-center justify-between mb-8 pb-4 border-b border-border/50">
             <div>
               <h1 className="text-xl font-bold tracking-tight uppercase">
-                {isJoinedView ? "My Clients" : "My Clusters"}
+                {isJoinedView
+                  ? "My Clients"
+                  : isTenantsView
+                    ? "Manage Tenants"
+                    : "My Clusters"}
               </h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
                 {isJoinedView
                   ? "Clients you have access to"
-                  : "Manage your infrastructure clusters"}
+                  : isTenantsView
+                    ? "Manage invites and tenant access"
+                    : "Manage your infrastructure clusters"}
               </p>
             </div>
-            {!isJoinedView && <CreateOrgDialog />}
+            {!isJoinedView && !isTenantsView && <CreateOrgDialog />}
           </div>
+
+          {/* VIEW: Manage Tenants */}
+          {isTenantsView && (
+            <div className="space-y-8">
+              {/* Invites Section */}
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
+                  Pending Invites (No Account Yet)
+                </h3>
+                {tenantInvites.length === 0 ? (
+                  <div className="text-sm text-muted-foreground border border-border/50 p-6 bg-card text-center">
+                    No pending invites.
+                  </div>
+                ) : (
+                  <div className="border border-border/50 bg-card">
+                    <div className="grid grid-cols-4 p-3 border-b border-border/50 bg-muted/50 text-[10px] uppercase font-bold text-muted-foreground">
+                      <div className="col-span-1">Email</div>
+                      <div className="col-span-1">Target Client</div>
+                      <div className="col-span-1">Role</div>
+                      <div className="col-span-1 text-right">Actions</div>
+                    </div>
+                    {tenantInvites.map((invite) => (
+                      <div
+                        key={invite.id}
+                        className="grid grid-cols-4 p-3 border-b border-border/50 last:border-0 items-center text-sm"
+                      >
+                        <div className="col-span-1 font-medium">
+                          {invite.email}
+                        </div>
+                        <div className="col-span-1 text-muted-foreground">
+                          {invite.tenants?.name || "Unknown"}
+                        </div>
+                        <div className="col-span-1 uppercase text-[10px] tracking-widest">
+                          {invite.role}
+                        </div>
+                        <div className="col-span-1 text-right">
+                          <button
+                            className="text-[10px] text-red-500 uppercase font-bold hover:underline"
+                            // TODO: Wire up to delete invite
+                          >
+                            Retract
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Active Members Section */}
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
+                  Active Members
+                </h3>
+                {tenantMembers.length === 0 ? (
+                  <div className="text-sm text-muted-foreground border border-border/50 p-6 bg-card text-center">
+                    No active members found.
+                  </div>
+                ) : (
+                  <div className="border border-border/50 bg-card">
+                    <div className="grid grid-cols-4 p-3 border-b border-border/50 bg-muted/50 text-[10px] uppercase font-bold text-muted-foreground">
+                      <div className="col-span-1">Member</div>
+                      <div className="col-span-1">Client Access</div>
+                      <div className="col-span-1">Role</div>
+                      <div className="col-span-1 text-right">Actions</div>
+                    </div>
+                    {tenantMembers.map((member: any) => (
+                      <div
+                        key={`${member.tenant_id}-${member.user_id}`}
+                        className="grid grid-cols-4 p-3 border-b border-border/50 last:border-0 items-center text-sm"
+                      >
+                        <div className="col-span-1 grid gap-1">
+                          <span className="font-bold leading-none">
+                            {member.full_name || "Unknown"}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground uppercase">
+                            {member.email || "No Email"}
+                          </span>
+                        </div>
+                        <div className="col-span-1 text-muted-foreground font-medium">
+                          {member.tenant_name}
+                        </div>
+                        <div className="col-span-1 uppercase text-[10px] tracking-widest">
+                          {member.role}
+                        </div>
+                        <div className="col-span-1 text-right">
+                          {/* Show Kick for everyone except self */}
+                          {member.user_id !== user.id && (
+                            <button className="text-[10px] text-red-500 uppercase font-bold hover:underline">
+                              Kick
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Section 1: My Clients (Tenant View) - Flattened List */}
           {isJoinedView && (
@@ -173,7 +306,7 @@ export default async function DashboardPage({
           )}
 
           {/* Section 2: My Clusters (Admin View) */}
-          {!isJoinedView && (
+          {!isJoinedView && !isTenantsView && (
             <div>
               <div className="grid gap-8">
                 {adminOrgs.length === 0 ? (

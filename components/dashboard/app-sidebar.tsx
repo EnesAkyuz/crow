@@ -78,6 +78,18 @@ export function AppSidebar({ user }: { user: any }) {
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                tooltip="Manage Tenants"
+                className="h-10"
+              >
+                <a href="/dashboard?view=tenants">
+                  <User className="size-4" />
+                  <span className="font-medium">Manage Tenants</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </div>
           <div className="px-2 py-2 mt-4">
             <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
