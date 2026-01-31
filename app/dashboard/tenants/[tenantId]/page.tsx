@@ -8,6 +8,7 @@ import { AddVaultSessionDialog } from "@/components/dashboard/add-vault-session-
 import { VaultSessionList } from "@/components/dashboard/vault-session-list";
 import { CreateExtractionSchemaDialog } from "@/components/dashboard/create-extraction-schema-dialog";
 import { ExtractionSchemaList } from "@/components/dashboard/extraction-schema-list";
+import { TenantTabs } from "@/components/dashboard/tenant-tabs";
 import { deleteTenantInvite } from "@/app/actions";
 import {
   SidebarInset,
@@ -242,141 +243,165 @@ export default async function TenantManagePage({
                 Cluster: {tenantWithOrg.organizations?.name || "Unknown"}
               </p>
             </div>
-            <InviteMemberDialog
-              tenantId={tenantWithOrg.id}
-              tenantName={tenantWithOrg.name}
-            />
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col gap-6 p-4 pt-4">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <section className="border border-border/50 bg-card">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  Pending Invites
-                </h2>
-                <Link
-                  href="/dashboard?view=tenants"
-                  className="text-[10px] uppercase font-bold text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Manage all
-                </Link>
-              </div>
-              {tenantInvites.length === 0 ? (
-                <div className="p-6 text-center text-sm text-muted-foreground">
-                  No pending invites.
+        <div className="flex flex-1 flex-col p-4 pt-4">
+          <TenantTabs
+            membersContent={
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-bold uppercase tracking-widest">
+                      Team Members
+                    </h2>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                      Manage invites and active members
+                    </p>
+                  </div>
+                  <InviteMemberDialog
+                    tenantId={tenantWithOrg.id}
+                    tenantName={tenantWithOrg.name}
+                  />
                 </div>
-              ) : (
-                <div className="divide-y divide-border/50">
-                  {tenantInvites.map((invite) => (
-                    <div
-                      key={invite.id}
-                      className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
-                    >
-                      <div>
-                        <div className="font-medium">{invite.email}</div>
-                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                          Role: {invite.role || "member"}
-                        </div>
-                      </div>
-                      <form action={deleteTenantInvite}>
-                        <input
-                          type="hidden"
-                          name="inviteId"
-                          value={invite.id}
-                        />
-                        <button className="text-[10px] text-red-500 uppercase font-bold hover:underline">
-                          Retract
-                        </button>
-                      </form>
+
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <section className="border border-border/50 bg-card">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                        Pending Invites
+                      </h3>
+                      <Link
+                        href="/dashboard?view=tenants"
+                        className="text-[10px] uppercase font-bold text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        Manage all
+                      </Link>
                     </div>
-                  ))}
-                </div>
-              )}
-            </section>
+                    {tenantInvites.length === 0 ? (
+                      <div className="p-6 text-center text-sm text-muted-foreground">
+                        No pending invites.
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-border/50">
+                        {tenantInvites.map((invite) => (
+                          <div
+                            key={invite.id}
+                            className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
+                          >
+                            <div>
+                              <div className="font-medium">{invite.email}</div>
+                              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                                Role: {invite.role || "member"}
+                              </div>
+                            </div>
+                            <form action={deleteTenantInvite}>
+                              <input
+                                type="hidden"
+                                name="inviteId"
+                                value={invite.id}
+                              />
+                              <button
+                                type="submit"
+                                className="text-[10px] text-red-500 uppercase font-bold hover:underline"
+                              >
+                                Retract
+                              </button>
+                            </form>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
 
-            <section className="border border-border/50 bg-card">
-              <div className="px-4 py-3 border-b border-border/50">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  Active Members
-                </h2>
-              </div>
-              {tenantMembers.length === 0 ? (
-                <div className="p-6 text-center text-sm text-muted-foreground">
-                  No active members found.
-                </div>
-              ) : (
-                <div className="divide-y divide-border/50">
-                  {tenantMembers.map((member) => (
-                    <div
-                      key={`${member.tenant_id}-${member.user_id}`}
-                      className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
-                    >
-                      <div>
-                        <div className="font-bold">
-                          {member.full_name || "Unknown"}
-                        </div>
-                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                          {member.email || "No Email"}
-                        </div>
-                      </div>
-                      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                        {member.role || "member"}
-                      </div>
+                  <section className="border border-border/50 bg-card">
+                    <div className="px-4 py-3 border-b border-border/50">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                        Active Members
+                      </h3>
                     </div>
-                  ))}
+                    {tenantMembers.length === 0 ? (
+                      <div className="p-6 text-center text-sm text-muted-foreground">
+                        No active members found.
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-border/50">
+                        {tenantMembers.map((member) => (
+                          <div
+                            key={`${member.tenant_id}-${member.user_id}`}
+                            className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
+                          >
+                            <div>
+                              <div className="font-bold">
+                                {member.full_name || "Unknown"}
+                              </div>
+                              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                                {member.email || "No Email"}
+                              </div>
+                            </div>
+                            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                              {member.role || "member"}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
                 </div>
-              )}
-            </section>
-          </div>
-
-          {/* Vault Sessions Section */}
-          <section className="border border-border/50 bg-card">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-              <div>
-                <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  Session Vault
-                </h2>
-                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">
-                  Encrypted session cookies for authenticated scraping
-                </p>
               </div>
-              <AddVaultSessionDialog
-                tenantId={tenantWithOrg.id}
-                tenantName={tenantWithOrg.name}
-              />
-            </div>
-            <VaultSessionList
-              sessions={tenantVaultSessions}
-              errorLogs={tenantErrorLogs}
-            />
-          </section>
+            }
+            sessionVaultContent={
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-bold uppercase tracking-widest">
+                      Session Vault
+                    </h2>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                      Encrypted session cookies for authenticated scraping
+                    </p>
+                  </div>
+                  <AddVaultSessionDialog
+                    tenantId={tenantWithOrg.id}
+                    tenantName={tenantWithOrg.name}
+                  />
+                </div>
 
-          {/* Document Extraction Section */}
-          <section className="border border-border/50 bg-card">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-              <div>
-                <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  Document Vault
-                </h2>
-                <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">
-                  Encrypted document extractions — values hidden, agents can
-                  access
-                </p>
+                <section className="border border-border/50 bg-card">
+                  <VaultSessionList
+                    sessions={tenantVaultSessions}
+                    errorLogs={tenantErrorLogs}
+                  />
+                </section>
               </div>
-              <CreateExtractionSchemaDialog
-                tenantId={tenantWithOrg.id}
-                tenantName={tenantWithOrg.name}
-              />
-            </div>
-            <div className="p-4">
-              <ExtractionSchemaList
-                schemas={tenantExtractionSchemas}
-                vaultSessions={tenantVaultSessions}
-              />
-            </div>
-          </section>
+            }
+            documentVaultContent={
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-bold uppercase tracking-widest">
+                      Document Vault
+                    </h2>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                      Encrypted document extractions — values hidden, agents can
+                      access
+                    </p>
+                  </div>
+                  <CreateExtractionSchemaDialog
+                    tenantId={tenantWithOrg.id}
+                    tenantName={tenantWithOrg.name}
+                  />
+                </div>
+
+                <section className="border border-border/50 bg-card p-4">
+                  <ExtractionSchemaList
+                    schemas={tenantExtractionSchemas}
+                    vaultSessions={tenantVaultSessions}
+                  />
+                </section>
+              </div>
+            }
+          />
         </div>
       </SidebarInset>
     </SidebarProvider>
