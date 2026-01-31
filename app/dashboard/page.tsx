@@ -4,6 +4,7 @@ import { CreateOrgDialog } from "@/components/dashboard/create-org-dialog";
 import { OrgCard } from "@/components/dashboard/org-card";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { NotificationsPopover } from "@/components/dashboard/notifications-popover";
+import { deleteTenantInvite } from "@/app/actions";
 import {
   SidebarInset,
   SidebarProvider,
@@ -18,6 +19,17 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Tables } from "@/types";
+import Link from "next/link";
+
+type TenantInvite = Tables<"tenant_invites"> & {
+  tenants?: {
+    name: string | null;
+    organization_id: string | null;
+  } | null;
+};
+
+type TenantMember = Tables<"tenant_members_with_profiles">;
 
 export default async function DashboardPage({
   searchParams,
@@ -47,22 +59,22 @@ export default async function DashboardPage({
     .order("created_at", { ascending: false });
 
   // If in tenants view, fetch invites and active members
-  let tenantInvites: any[] = [];
-  let tenantMembers: any[] = [];
+  let tenantInvites: TenantInvite[] = [];
+  let tenantMembers: TenantMember[] = [];
 
   if (isTenantsView) {
     const { data: invites } = await supabase
       .from("tenant_invites")
       .select("*, tenants(name, organization_id)")
       .order("created_at", { ascending: false });
-    tenantInvites = invites || [];
+    tenantInvites = (invites || []) as TenantInvite[];
 
     // Fetch active members using the new view
     const { data: members } = await supabase
       .from("tenant_members_with_profiles")
       .select("*")
       .order("created_at", { ascending: false });
-    tenantMembers = members || [];
+    tenantMembers = (members || []) as TenantMember[];
   }
 
   if (error) {
@@ -85,34 +97,32 @@ export default async function DashboardPage({
     <SidebarProvider>
       <AppSidebar user={user} />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b border-border/50">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">Crow</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>
-                    {isJoinedView
-                      ? "My Clients"
-                      : isTenantsView
-                        ? "Manage Tenants"
-                        : "My Clusters"}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          <div className="px-4">
+        <header className="shrink-0 border-b border-border/50">
+          <div className="flex h-16 items-center justify-between gap-2 px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="mr-2 h-4" />
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink href="#">Crow</BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>
+                      {isJoinedView
+                        ? "My Clients"
+                        : isTenantsView
+                          ? "Manage Tenants"
+                          : "My Clusters"}
+                    </BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
             <NotificationsPopover />
           </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-border/50">
+          <div className="flex items-center justify-between px-4 pb-6">
             <div>
               <h1 className="text-xl font-bold tracking-tight uppercase">
                 {isJoinedView
@@ -131,7 +141,8 @@ export default async function DashboardPage({
             </div>
             {!isJoinedView && !isTenantsView && <CreateOrgDialog />}
           </div>
-
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-4">
           {/* VIEW: Manage Tenants */}
           {isTenantsView && (
             <div className="space-y-8">
@@ -167,12 +178,16 @@ export default async function DashboardPage({
                           {invite.role}
                         </div>
                         <div className="col-span-1 text-right">
-                          <button
-                            className="text-[10px] text-red-500 uppercase font-bold hover:underline"
-                            // TODO: Wire up to delete invite
-                          >
-                            Retract
-                          </button>
+                          <form action={deleteTenantInvite}>
+                            <input
+                              type="hidden"
+                              name="inviteId"
+                              value={invite.id}
+                            />
+                            <button className="text-[10px] text-red-500 uppercase font-bold hover:underline">
+                              Retract
+                            </button>
+                          </form>
                         </div>
                       </div>
                     ))}
@@ -196,7 +211,7 @@ export default async function DashboardPage({
                       <div className="col-span-1">Role</div>
                       <div className="col-span-1 text-right">Actions</div>
                     </div>
-                    {tenantMembers.map((member: any) => (
+                    {tenantMembers.map((member) => (
                       <div
                         key={`${member.tenant_id}-${member.user_id}`}
                         className="grid grid-cols-4 p-3 border-b border-border/50 last:border-0 items-center text-sm"
@@ -235,10 +250,18 @@ export default async function DashboardPage({
           {isJoinedView && (
             <div className="mb-12">
               {(() => {
-                // Flatten tenants from all visible organizations
-                const allTenants = tenantOrgs.flatMap((org) =>
-                  // @ts-ignore
-                  (org.tenants || []).map((t) => ({ ...t, orgName: org.name })),
+                // Flatten tenants from all visible organizations (joined + owned)
+                const allTenantsRaw = [...tenantOrgs, ...adminOrgs].flatMap(
+                  (org) =>
+                    // @ts-ignore
+                    (org.tenants || []).map((t) => ({
+                      ...t,
+                      orgName: org.name,
+                    })),
+                );
+                const allTenants = allTenantsRaw.filter(
+                  (tenant, index, self) =>
+                    self.findIndex((item) => item.id === tenant.id) === index,
                 );
 
                 if (allTenants.length === 0) {
@@ -259,8 +282,9 @@ export default async function DashboardPage({
                 return (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {allTenants.map((tenant: any) => (
-                      <div
+                      <Link
                         key={tenant.id}
+                        href={`/dashboard/tenants/${tenant.id}`}
                         className="group border border-border/50 bg-card hover:bg-muted/5 transition-colors p-6 cursor-pointer relative overflow-hidden"
                       >
                         <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -291,13 +315,18 @@ export default async function DashboardPage({
                             <span className="text-[10px] uppercase font-bold text-muted-foreground">
                               Status
                             </span>
-                            <span className="text-[10px] uppercase font-bold text-emerald-500 flex items-center gap-1">
-                              <span className="block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                              Active
-                            </span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-[10px] uppercase font-bold text-emerald-500 flex items-center gap-1">
+                                <span className="block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                Active
+                              </span>
+                              <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
+                                Manage
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 );

@@ -13,6 +13,10 @@ const inviteSchema = z.object({
   tenantId: z.string().uuid(),
 });
 
+const deleteInviteSchema = z.object({
+  inviteId: z.string().uuid(),
+});
+
 export async function createOrganization(formData: FormData) {
   const supabase = await createClient();
 
@@ -89,6 +93,29 @@ export async function inviteUserToTenant(formData: FormData) {
       // Unique violation
       return { error: "User already invited" };
     }
+    return { error: error.message };
+  }
+
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function deleteTenantInvite(formData: FormData) {
+  const supabase = await createClient();
+
+  const inviteId = formData.get("inviteId") as string;
+  const validated = deleteInviteSchema.safeParse({ inviteId });
+
+  if (!validated.success) {
+    return { error: "Invalid invite ID" };
+  }
+
+  const { error } = await supabase
+    .from("tenant_invites")
+    .delete()
+    .eq("id", validated.data.inviteId);
+
+  if (error) {
     return { error: error.message };
   }
 
