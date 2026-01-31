@@ -371,7 +371,10 @@ export default async function TenantManagePage({
               />
             </div>
             <div className="p-4">
-              <ExtractionSchemaList schemas={tenantExtractionSchemas} />
+              <ExtractionSchemaList
+                schemas={tenantExtractionSchemas}
+                vaultSessions={tenantVaultSessions}
+              />
             </div>
           </section>
         </div>

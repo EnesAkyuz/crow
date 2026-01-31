@@ -35,6 +35,7 @@ import {
   toggleExtractionSchemaActive,
 } from "@/app/actions";
 import { ExtractDocumentDialog } from "./extract-document-dialog";
+import { ExtractWebDialog } from "./extract-web-dialog";
 import { toast } from "sonner";
 
 interface Field {
@@ -62,11 +63,21 @@ interface ExtractionSchema {
   document_extractions?: Extraction[];
 }
 
-interface ExtractionSchemaListProps {
-  schemas: ExtractionSchema[];
+interface VaultSession {
+  id: string;
+  name: string;
+  is_active: boolean | null;
 }
 
-export function ExtractionSchemaList({ schemas }: ExtractionSchemaListProps) {
+interface ExtractionSchemaListProps {
+  schemas: ExtractionSchema[];
+  vaultSessions?: VaultSession[];
+}
+
+export function ExtractionSchemaList({
+  schemas,
+  vaultSessions = [],
+}: ExtractionSchemaListProps) {
   const [expandedSchemas, setExpandedSchemas] = useState<Set<string>>(
     new Set(),
   );
@@ -225,6 +236,14 @@ export function ExtractionSchemaList({ schemas }: ExtractionSchemaListProps) {
                     {extractions.length !== 1 ? "s" : ""}
                   </Badge>
 
+                  <ExtractWebDialog
+                    schema={schema}
+                    vaultSessions={vaultSessions.map((s) => ({
+                      id: s.id,
+                      name: s.name,
+                      is_active: s.is_active ?? false,
+                    }))}
+                  />
                   <ExtractDocumentDialog schema={schema} />
 
                   <DropdownMenu>
