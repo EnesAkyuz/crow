@@ -34,6 +34,111 @@ export type Database = {
   };
   public: {
     Tables: {
+      extractions: {
+        Row: {
+          created_at: string | null;
+          data: Json | null;
+          id: string;
+          status: string | null;
+          tenant_id: string;
+          updated_at: string | null;
+          workflow_id: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          data?: Json | null;
+          id?: string;
+          status?: string | null;
+          tenant_id: string;
+          updated_at?: string | null;
+          workflow_id?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          data?: Json | null;
+          id?: string;
+          status?: string | null;
+          tenant_id?: string;
+          updated_at?: string | null;
+          workflow_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "extractions_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "extractions_workflow_id_fkey";
+            columns: ["workflow_id"];
+            isOneToOne: false;
+            referencedRelation: "workflows";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      organization_members: {
+        Row: {
+          created_at: string | null;
+          organization_id: string;
+          role: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          organization_id: string;
+          role?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          organization_id?: string;
+          role?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "organization_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      organizations: {
+        Row: {
+          created_at: string | null;
+          created_by: string;
+          id: string;
+          name: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          created_by?: string;
+          id?: string;
+          name: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          created_by?: string;
+          id?: string;
+          name?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           avatar_url: string | null;
@@ -61,12 +166,197 @@ export type Database = {
         };
         Relationships: [];
       };
+      tenant_invites: {
+        Row: {
+          created_at: string | null;
+          email: string;
+          id: string;
+          invited_by: string | null;
+          role: string | null;
+          tenant_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          email: string;
+          id?: string;
+          invited_by?: string | null;
+          role?: string | null;
+          tenant_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          email?: string;
+          id?: string;
+          invited_by?: string | null;
+          role?: string | null;
+          tenant_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tenant_invites_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tenant_members: {
+        Row: {
+          created_at: string | null;
+          role: string | null;
+          tenant_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          role?: string | null;
+          tenant_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          role?: string | null;
+          tenant_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tenant_members_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tenant_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tenants: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          name: string;
+          organization_id: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          name: string;
+          organization_id: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          name?: string;
+          organization_id?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tenants_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      vault_sessions: {
+        Row: {
+          created_at: string | null;
+          encrypted_data: string | null;
+          id: string;
+          tenant_id: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          encrypted_data?: string | null;
+          id?: string;
+          tenant_id: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          encrypted_data?: string | null;
+          id?: string;
+          tenant_id?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "vault_sessions_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      workflows: {
+        Row: {
+          created_at: string | null;
+          definition: Json | null;
+          id: string;
+          name: string;
+          organization_id: string;
+          tenant_id: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          definition?: Json | null;
+          id?: string;
+          name: string;
+          organization_id: string;
+          tenant_id?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          definition?: Json | null;
+          id?: string;
+          name?: string;
+          organization_id?: string;
+          tenant_id?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "workflows_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "workflows_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "tenants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      is_org_member: { Args: { org_id: string }; Returns: boolean };
+      is_org_member_of_tenant: {
+        Args: { _tenant_id: string };
+        Returns: boolean;
+      };
+      is_tenant_member: { Args: { _tenant_id: string }; Returns: boolean };
     };
     Enums: {
       [_ in never]: never;
