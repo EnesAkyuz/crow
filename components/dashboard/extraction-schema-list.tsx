@@ -12,9 +12,17 @@ import {
   ChevronRight,
   FileText,
   Clock,
+  Bug,
+  Eye,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +45,9 @@ import {
 import { ExtractDocumentDialog } from "./extract-document-dialog";
 import { ExtractWebDialog } from "./extract-web-dialog";
 import { toast } from "sonner";
+
+// Check if we're in development mode (client-side check)
+const isDev = process.env.NODE_ENV === "development";
 
 interface Field {
   name: string;
@@ -82,6 +93,30 @@ export function ExtractionSchemaList({
     new Set(),
   );
   const [loading, setLoading] = useState<string | null>(null);
+  const [debugData, setDebugData] = useState<{
+    open: boolean;
+    data: Record<string, unknown> | null;
+    source: string;
+    loading: boolean;
+  }>({ open: false, data: null, source: "", loading: false });
+
+  const handleDebugView = async (extractionId: string, source: string) => {
+    if (!isDev) return;
+    setDebugData({ open: true, data: null, source, loading: true });
+    try {
+      const res = await fetch(`/api/debug/extraction?id=${extractionId}`);
+      const json = await res.json();
+      if (json.error) {
+        toast.error(json.error);
+        setDebugData((prev) => ({ ...prev, loading: false }));
+      } else {
+        setDebugData({ open: true, data: json.data, source, loading: false });
+      }
+    } catch {
+      toast.error("Failed to load debug data");
+      setDebugData((prev) => ({ ...prev, loading: false }));
+    }
+  };
 
   const toggleExpanded = (schemaId: string) => {
     setExpandedSchemas((prev) => {
@@ -305,6 +340,11 @@ export function ExtractionSchemaList({
                         <TableHead className="text-[10px] uppercase tracking-widest">
                           Extracted
                         </TableHead>
+                        {isDev && (
+                          <TableHead className="text-[10px] uppercase tracking-widest w-[60px]">
+                            Debug
+                          </TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -344,6 +384,24 @@ export function ExtractionSchemaList({
                                 : "—"}
                             </div>
                           </TableCell>
+                          {isDev && (
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() =>
+                                  handleDebugView(
+                                    extraction.id,
+                                    extraction.source_filename,
+                                  )
+                                }
+                                disabled={extraction.status !== "completed"}
+                              >
+                                <Eye className="w-3 h-3" />
+                              </Button>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -361,6 +419,47 @@ export function ExtractionSchemaList({
           </div>
         );
       })}
+
+      {/* Debug Dialog - DEV ONLY */}
+      {isDev && (
+        <Dialog
+          open={debugData.open}
+          onOpenChange={(open) => setDebugData((prev) => ({ ...prev, open }))}
+        >
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle className="uppercase tracking-widest text-sm font-bold flex items-center gap-2">
+                <Bug className="w-4 h-4 text-orange-500" />
+                Debug: Extracted Values
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Source: {debugData.source}
+              </div>
+              {debugData.loading ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  Loading...
+                </div>
+              ) : debugData.data ? (
+                <div className="bg-muted/50 p-4 rounded-lg overflow-auto max-h-[400px]">
+                  <pre className="text-xs font-mono whitespace-pre-wrap">
+                    {JSON.stringify(debugData.data, null, 2)}
+                  </pre>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                  No data available
+                </div>
+              )}
+              <div className="flex items-center gap-2 text-[9px] text-orange-500 uppercase tracking-wider">
+                <Bug className="w-3 h-3" />
+                Development only — this data is encrypted in production
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
