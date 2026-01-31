@@ -66,14 +66,32 @@ export function AppSidebar({ user }: { user: any }) {
       </SidebarHeader>
       <SidebarContent className="p-2">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Workspaces" className="h-10">
-              <a href="/dashboard">
-                <Monitor className="size-4" />
-                <span className="font-medium">Dashboard</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <div className="px-2 py-2">
+            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Admin
+            </h4>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="My Clusters" className="h-10">
+                <a href="/dashboard">
+                  <Monitor className="size-4" />
+                  <span className="font-medium">My Clusters</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </div>
+          <div className="px-2 py-2 mt-4">
+            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Access
+            </h4>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="My Clients" className="h-10">
+                <a href="/dashboard?view=joined">
+                  <User className="size-4" />
+                  <span className="font-medium">My Clients</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </div>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="border-t border-border/50 p-2">
@@ -147,6 +165,3 @@ export function AppSidebar({ user }: { user: any }) {
     </Sidebar>
   );
 }
-
-// Missing icon imports fix
-import { CreditCard, Bell } from "lucide-react";

@@ -18,8 +18,16 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { view?: string };
+}) {
   const supabase = await createClient();
+  const { view } = await searchParams; // Next.js 15 requires async searchParams, ensure we handle if it's treated as promise or not. Next 14 is sync. Assuming Next 14/15 compatibility, await if necessary but strict type is usually simple object in page props.
+  // Actually, in the project context we are likely on Next 14 or latest which treats it as object mostly, but let's just assign.
+
+  const isJoinedView = view === "joined";
 
   const {
     data: { user },
@@ -29,8 +37,8 @@ export default async function DashboardPage() {
     return redirect("/login");
   }
 
-  // Fetch organizations the user is a member of, and their tenants
-  // Note: RLS ensures we only see what we are allowed to see
+  // Fetch only necessary data based on view to optimize?
+  // RLS protects us anyway, so fetching all is fine for now for simplicity, but strictly we could filter in query.
   const { data: organizations, error } = await supabase
     .from("organizations")
     .select("*, tenants(*)")
@@ -45,6 +53,12 @@ export default async function DashboardPage() {
       </div>
     );
   }
+
+  // Filter organizations
+  const adminOrgs =
+    organizations?.filter((org) => org.created_by === user.id) || [];
+  const tenantOrgs =
+    organizations?.filter((org) => org.created_by !== user.id) || [];
 
   return (
     <SidebarProvider>
@@ -61,7 +75,9 @@ export default async function DashboardPage() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                  <BreadcrumbPage>
+                    {isJoinedView ? "My Clients" : "My Clusters"}
+                  </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -71,38 +87,119 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between mb-8 pb-4 border-b border-border/50">
             <div>
               <h1 className="text-xl font-bold tracking-tight uppercase">
-                Workspaces
+                {isJoinedView ? "My Clients" : "My Clusters"}
               </h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                Multi-tenant Data Ingestion Layer
+                {isJoinedView
+                  ? "Clients you have access to"
+                  : "Manage your infrastructure clusters"}
               </p>
             </div>
-            <CreateOrgDialog />
+            {!isJoinedView && <CreateOrgDialog />}
           </div>
 
-          <div className="grid gap-8">
-            {organizations?.length === 0 ? (
-              <div className="text-center py-24 border border-border/50 bg-card">
-                <div className="flex flex-col items-center justify-center space-y-4">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-bold uppercase tracking-widest">
-                      Zero Workspaces Found
-                    </h3>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest max-w-xs mx-auto">
-                      Initialize your infrastructure by creating a new
-                      workspace.
-                    </p>
+          {/* Section 1: My Clients (Tenant View) - Flattened List */}
+          {isJoinedView && (
+            <div className="mb-12">
+              {(() => {
+                // Flatten tenants from all visible organizations
+                const allTenants = tenantOrgs.flatMap((org) =>
+                  // @ts-ignore
+                  (org.tenants || []).map((t) => ({ ...t, orgName: org.name })),
+                );
+
+                if (allTenants.length === 0) {
+                  return (
+                    <div className="text-center py-24 border border-border/50 bg-card">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-bold uppercase tracking-widest">
+                          No Clients Assigned
+                        </h3>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest max-w-xs mx-auto">
+                          You haven't been assigned to any clients yet.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {allTenants.map((tenant: any) => (
+                      <div
+                        key={tenant.id}
+                        className="group border border-border/50 bg-card hover:bg-muted/5 transition-colors p-6 cursor-pointer relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="square"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M5 12h13M12 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="font-bold text-lg tracking-tight">
+                              {tenant.name}
+                            </h3>
+                            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+                              Cluster: {tenant.orgName}
+                            </p>
+                          </div>
+                          <div className="pt-4 border-t border-border/50 flex justify-between items-center">
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground">
+                              Status
+                            </span>
+                            <span className="text-[10px] uppercase font-bold text-emerald-500 flex items-center gap-1">
+                              <span className="block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Active
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <CreateOrgDialog />
-                </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Section 2: My Clusters (Admin View) */}
+          {!isJoinedView && (
+            <div>
+              <div className="grid gap-8">
+                {adminOrgs.length === 0 ? (
+                  <div className="text-center py-24 border border-border/50 bg-card">
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-bold uppercase tracking-widest">
+                          Zero Clusters Found
+                        </h3>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest max-w-xs mx-auto">
+                          Initialize your infrastructure by creating a new
+                          cluster.
+                        </p>
+                      </div>
+                      <CreateOrgDialog />
+                    </div>
+                  </div>
+                ) : (
+                  adminOrgs.map((org) => (
+                    // @ts-ignore
+                    <OrgCard key={org.id} org={org} />
+                  ))
+                )}
               </div>
-            ) : (
-              organizations?.map((org) => (
-                // @ts-ignore
-                <OrgCard key={org.id} org={org} />
-              ))
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </SidebarInset>
     </SidebarProvider>

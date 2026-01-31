@@ -41,14 +41,14 @@ export function CreateOrgDialog() {
           variant="outline"
           className="rounded-none border-border/50 uppercase tracking-widest text-[10px] font-bold h-10 px-6"
         >
-          New Workspace
+          New Cluster
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create Organization</DialogTitle>
+          <DialogTitle>Create Cluster</DialogTitle>
           <DialogDescription>
-            Create a new organization to manage your clients (tenants).
+            Create a new cluster to manage your clients (tenants).
           </DialogDescription>
         </DialogHeader>
         <form action={onSubmit}>
@@ -61,14 +61,14 @@ export function CreateOrgDialog() {
                 id="name"
                 name="name"
                 className="col-span-3"
-                placeholder="Acme Corp"
+                placeholder="Finance Cluster"
                 required
               />
             </div>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create Organization"}
+              {loading ? "Creating..." : "Create Cluster"}
             </Button>
           </DialogFooter>
         </form>
