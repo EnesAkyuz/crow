@@ -70,7 +70,7 @@ export function AppSidebar({ user }: { user: any }) {
       <SidebarContent className="p-2">
         <SidebarMenu>
           <div className="px-2 py-2">
-            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-data-[collapsible=icon]:hidden">
               Admin
             </h4>
             <SidebarMenuItem>
@@ -95,7 +95,7 @@ export function AppSidebar({ user }: { user: any }) {
             </SidebarMenuItem>
           </div>
           <div className="px-2 py-2 mt-4">
-            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-data-[collapsible=icon]:hidden">
               Access
             </h4>
             <SidebarMenuItem>
@@ -108,7 +108,7 @@ export function AppSidebar({ user }: { user: any }) {
             </SidebarMenuItem>
           </div>
           <div className="px-2 py-2 mt-4">
-            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-data-[collapsible=icon]:hidden">
               Tools
             </h4>
             <SidebarMenuItem>
@@ -116,7 +116,7 @@ export function AppSidebar({ user }: { user: any }) {
             </SidebarMenuItem>
           </div>
           <div className="px-2 py-2 mt-4">
-            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <h4 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-data-[collapsible=icon]:hidden">
               Developers
             </h4>
             <SidebarMenuItem>

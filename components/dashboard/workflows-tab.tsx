@@ -389,7 +389,7 @@ function StepConfig({
               <p className="text-red-600 text-[10px]">{testResult.error}</p>
             )}
             {testResult.data && isTestMode && (
-              <pre className="text-[10px] overflow-auto max-h-48 p-2 bg-background/50 rounded">
+              <pre className="text-[10px] overflow-auto max-h-48 p-2 bg-background/50 rounded whitespace-pre-wrap break-all">
                 {JSON.stringify(testResult.data, null, 2)}
               </pre>
             )}

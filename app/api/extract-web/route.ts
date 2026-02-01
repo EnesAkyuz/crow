@@ -23,6 +23,17 @@ function decryptCookieData(encrypted: string): string {
   return Buffer.from(encrypted, "base64").toString("utf-8");
 }
 
+/**
+ * Normalize cookie data to proper format
+ */
+function normalizeCookieData(cookieData: string): string {
+  const trimmed = cookieData.trim();
+  if (trimmed.includes("=")) {
+    return trimmed;
+  }
+  return `auth-token=${trimmed}`;
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -83,7 +94,16 @@ export async function POST(request: Request) {
       .single();
 
     if (vaultSession?.is_active && vaultSession?.encrypted_data) {
-      cookieHeader = decryptCookieData(vaultSession.encrypted_data);
+      const rawCookie = decryptCookieData(vaultSession.encrypted_data);
+      cookieHeader = normalizeCookieData(rawCookie);
+      console.log(
+        `[Extract Web] Using session cookie: ${cookieHeader.substring(0, 50)}...`,
+      );
+    } else {
+      console.log(`[Extract Web] Session not active or no data`, {
+        sessionId,
+        isActive: vaultSession?.is_active,
+      });
     }
   }
 
@@ -144,6 +164,23 @@ export async function POST(request: Request) {
   }
 
   try {
+    // Build Firecrawl request body
+    const firecrawlBody: Record<string, unknown> = {
+      url,
+      formats: ["extract"],
+      extract: {
+        schema: extractSchema,
+      },
+    };
+
+    // Only add headers if we have a cookie
+    if (cookieHeader) {
+      firecrawlBody.headers = { Cookie: cookieHeader };
+      console.log(`[Extract Web] Sending request WITH cookie header`);
+    } else {
+      console.log(`[Extract Web] Sending request WITHOUT cookie header`);
+    }
+
     // Call Firecrawl with extract option
     const response = await fetch(`${apiUrl}/v1/scrape`, {
       method: "POST",
@@ -151,14 +188,7 @@ export async function POST(request: Request) {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        url,
-        formats: ["extract"],
-        extract: {
-          schema: extractSchema,
-        },
-        headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
-      }),
+      body: JSON.stringify(firecrawlBody),
     });
 
     const data = await response.json();

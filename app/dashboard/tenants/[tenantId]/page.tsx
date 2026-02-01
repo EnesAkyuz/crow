@@ -251,7 +251,7 @@ export default async function TenantManagePage({
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col p-4 pt-4">
+        <div className="flex flex-1 flex-col p-4 pt-4 min-w-0">
           <TenantTabs
             analyticsContent={
               <div className="space-y-6">

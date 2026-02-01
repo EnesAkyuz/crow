@@ -21,8 +21,8 @@ export function TenantTabs({
   workflowsContent,
 }: TenantTabsProps) {
   return (
-    <Tabs defaultValue="analytics" className="w-full">
-      <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
+    <Tabs defaultValue="analytics" className="w-full min-w-0">
+      <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto overflow-x-auto flex-wrap">
         <TabsTrigger
           value="analytics"
           className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3 text-[10px] uppercase tracking-widest font-bold"

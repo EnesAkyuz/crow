@@ -116,7 +116,21 @@ Do not include any other text, markdown, or explanation. Just the JSON.`;
     }
     jsonText = jsonText.trim();
 
-    const schema = JSON.parse(jsonText);
+    // Try to fix common JSON issues from AI output
+    // Remove trailing commas before ] or }
+    jsonText = jsonText.replace(/,(\s*[}\]])/g, "$1");
+
+    let schema;
+    try {
+      schema = JSON.parse(jsonText);
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      console.error("Raw text:", jsonText);
+      return NextResponse.json(
+        { error: "AI returned invalid JSON. Please try again." },
+        { status: 500 },
+      );
+    }
 
     // Validate the response structure
     if (!schema.name || !schema.fields || !Array.isArray(schema.fields)) {

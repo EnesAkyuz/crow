@@ -255,19 +255,34 @@ export async function POST(request: Request) {
   // Get vault session if provided
   let cookieHeader: string | undefined;
   if (sessionId) {
-    const { data: vaultSession } = await supabase
+    const { data: vaultSession, error: sessionError } = await supabase
       .from("vault_sessions")
-      .select("encrypted_data, is_active")
+      .select("encrypted_data, is_active, name")
       .eq("id", sessionId)
       .single();
+
+    console.log(`[Agentic Extract] Session lookup:`, {
+      sessionId,
+      found: !!vaultSession,
+      isActive: vaultSession?.is_active,
+      hasData: !!vaultSession?.encrypted_data,
+      sessionName: vaultSession?.name,
+      error: sessionError?.message,
+    });
 
     if (vaultSession?.is_active && vaultSession?.encrypted_data) {
       const rawCookieData = decryptCookieData(vaultSession.encrypted_data);
       cookieHeader = normalizeCookieData(rawCookieData);
       console.log(
-        `[Agentic Extract] Using cookie format: ${cookieHeader.substring(0, 30)}...`,
+        `[Agentic Extract] Cookie header (first 50 chars): ${cookieHeader.substring(0, 50)}...`,
       );
+    } else if (vaultSession && !vaultSession.is_active) {
+      console.log(`[Agentic Extract] Session is inactive!`);
+    } else if (vaultSession && !vaultSession.encrypted_data) {
+      console.log(`[Agentic Extract] Session has no encrypted data!`);
     }
+  } else {
+    console.log(`[Agentic Extract] No sessionId provided`);
   }
 
   // Build Firecrawl extract schema
@@ -335,7 +350,17 @@ export async function POST(request: Request) {
     // Add headers with cookie if session provided
     if (cookieHeader) {
       firecrawlBody.headers = { Cookie: cookieHeader };
+      console.log(`[Agentic Extract] Sending to Firecrawl with Cookie header`);
+    } else {
+      console.log(
+        `[Agentic Extract] Sending to Firecrawl WITHOUT Cookie header`,
+      );
     }
+
+    console.log(`[Agentic Extract] Firecrawl request:`, {
+      url,
+      hasHeaders: !!firecrawlBody.headers,
+    });
 
     const response = await fetch(`${firecrawlApiUrl}/v1/scrape`, {
       method: "POST",

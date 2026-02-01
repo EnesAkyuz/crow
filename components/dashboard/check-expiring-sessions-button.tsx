@@ -15,9 +15,16 @@ import { toast } from "sonner";
 interface CheckResult {
   success: boolean;
   message: string;
-  processed: number;
-  successful?: number;
-  failed?: number;
+  expiring?: {
+    found: number;
+    successful: number;
+    failed: number;
+  };
+  expired?: {
+    found: number;
+    successful: number;
+    failed: number;
+  };
 }
 
 interface CheckExpiringSessionsButtonProps {
@@ -38,12 +45,21 @@ export function CheckExpiringSessionsButton({
       const data: CheckResult = await response.json();
 
       if (data.success) {
-        if (data.processed === 0) {
+        const expiringFound = data.expiring?.found || 0;
+        const expiredFound = data.expired?.found || 0;
+        const totalFound = expiringFound + expiredFound;
+
+        if (totalFound === 0) {
           toast.info("No sessions need notifications right now");
         } else {
-          toast.success(
-            `Processed ${data.processed} session${data.processed !== 1 ? "s" : ""}: ${data.successful} notified, ${data.failed} failed`,
-          );
+          const parts: string[] = [];
+          if (expiringFound > 0) {
+            parts.push(`${data.expiring?.successful || 0} expiring`);
+          }
+          if (expiredFound > 0) {
+            parts.push(`${data.expired?.successful || 0} expired`);
+          }
+          toast.success(`Notified: ${parts.join(", ")}`);
         }
       } else {
         toast.error("Failed to check sessions");
