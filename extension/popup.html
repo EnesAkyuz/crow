@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 360px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0a0a0a;
+      color: #fafafa;
+      font-size: 12px;
+    }
+    .header {
+      padding: 16px;
+      border-bottom: 1px solid #27272a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header h1 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+    }
+    .logo {
+      width: 24px;
+      height: 24px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .content { padding: 16px; }
+    .section {
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #71717a;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .current-site {
+      background: #18181b;
+      border: 1px solid #27272a;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 11px;
+      word-break: break-all;
+    }
+    .cookie-count {
+      color: #a1a1aa;
+      margin-top: 4px;
+      font-size: 10px;
+    }
+    select, input, button {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #27272a;
+      background: #18181b;
+      color: #fafafa;
+      font-size: 11px;
+      margin-bottom: 8px;
+    }
+    select:focus, input:focus {
+      outline: none;
+      border-color: #52525b;
+    }
+    input::placeholder { color: #52525b; }
+    button {
+      background: #fafafa;
+      color: #0a0a0a;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover { background: #e4e4e7; }
+    button:disabled {
+      background: #27272a;
+      color: #52525b;
+      cursor: not-allowed;
+    }
+    button.secondary {
+      background: transparent;
+      border: 1px solid #27272a;
+      color: #a1a1aa;
+    }
+    button.secondary:hover {
+      background: #18181b;
+      color: #fafafa;
+    }
+    button.danger {
+      background: #7f1d1d;
+      color: #fecaca;
+    }
+    button.danger:hover { background: #991b1b; }
+    .sessions-list {
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .session-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: #18181b;
+      border: 1px solid #27272a;
+      margin-bottom: 4px;
+    }
+    .session-info { flex: 1; }
+    .session-name { font-weight: 600; }
+    .session-status {
+      font-size: 10px;
+      color: #71717a;
+    }
+    .session-status.expired { color: #f87171; }
+    .session-status.active { color: #4ade80; }
+    .session-actions {
+      display: flex;
+      gap: 4px;
+    }
+    .session-actions button {
+      width: auto;
+      padding: 4px 8px;
+      margin: 0;
+      font-size: 9px;
+    }
+    .status {
+      padding: 12px;
+      text-align: center;
+      font-size: 11px;
+    }
+    .status.success { background: #14532d; color: #86efac; }
+    .status.error { background: #7f1d1d; color: #fecaca; }
+    .status.loading { background: #18181b; color: #a1a1aa; }
+    .login-prompt {
+      text-align: center;
+      padding: 24px 16px;
+    }
+    .login-prompt p { color: #71717a; margin-bottom: 12px; }
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #27272a;
+    }
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      color: #71717a;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .tab.active {
+      color: #fafafa;
+      border-bottom-color: #fafafa;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">✦</div>
+    <h1>Crow Session Vault</h1>
+  </div>
+
+  <div id="loading" class="status loading">Loading...</div>
+
+  <div id="login-required" class="login-prompt hidden">
+    <p>Please log in to Crow to use the extension</p>
+    <button id="open-crow-btn">Open Crow Dashboard</button>
+  </div>
+
+  <div id="main-content" class="hidden">
+    <div class="tabs">
+      <div class="tab active" data-tab="capture">Capture</div>
+      <div class="tab" data-tab="manage">Manage</div>
+    </div>
+
+    <div id="tab-capture" class="tab-content active">
+      <div class="content">
+        <div class="section">
+          <div class="section-title">Current Site</div>
+          <div class="current-site">
+            <div id="current-url">-</div>
+            <div class="cookie-count" id="cookie-count">0 cookies found</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Select Client</div>
+          <select id="tenant-select">
+            <option value="">Loading...</option>
+          </select>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Session Name</div>
+          <input type="text" id="session-name" placeholder="e.g., Portal Login Session">
+        </div>
+
+        <div class="section">
+          <div class="section-title">Expires In</div>
+          <select id="expires-in">
+            <option value="1">1 hour</option>
+            <option value="24" selected>24 hours</option>
+            <option value="168">7 days</option>
+            <option value="720">30 days</option>
+          </select>
+        </div>
+
+        <button id="capture-btn" disabled>Capture & Save Session</button>
+
+        <div id="capture-status" class="status hidden"></div>
+      </div>
+    </div>
+
+    <div id="tab-manage" class="tab-content">
+      <div class="content">
+        <div class="section">
+          <div class="section-title">Select Client</div>
+          <select id="manage-tenant-select">
+            <option value="">Select a client...</option>
+          </select>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Sessions</div>
+          <div id="sessions-list" class="sessions-list">
+            <div class="status loading">Select a client to view sessions</div>
+          </div>
+        </div>
+
+        <div id="manage-status" class="status hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
