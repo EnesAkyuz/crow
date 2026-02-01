@@ -18,6 +18,8 @@ Store and manage encrypted authentication sessions for your tenants. Enable AI a
 - **Rate limiting** - Per-session hourly/daily limits to avoid detection
 - **Browser extension** - One-click session capture from any website
 
+<img width="1680" height="962" alt="Screenshot 2026-02-01 at 12 56 54 PM" src="https://github.com/user-attachments/assets/eb21d254-744f-46b9-9016-c61eb636e911" />
+
 ### 🔄 Visual Workflow Builder
 Build complex data extraction pipelines without code using a step-based workflow designer.
 
@@ -29,12 +31,17 @@ Build complex data extraction pipelines without code using a step-based workflow
 - **Webhook** - POST extracted data to any endpoint
 - **Email** - Send results via email using Resend
 
+<img width="1680" height="962" alt="Screenshot 2026-02-01 at 12 57 13 PM" src="https://github.com/user-attachments/assets/35999cd2-521f-44fa-98dd-2fbd21d721fd" />
+
 ### 📊 Extraction Schemas
 Define reusable extraction schemas with typed fields:
 
 - String, Number, Date, Boolean field types
 - Schema versioning and activation controls
 - Shared across workflows for consistency
+
+<img width="1680" height="962" alt="Screenshot 2026-02-01 at 12 57 02 PM" src="https://github.com/user-attachments/assets/2455d383-a1b9-442e-b5b6-0a440817268f" />
+
 
 ### 🏢 Multi-Tenant Architecture
 Enterprise-ready multi-tenancy with granular access controls:
@@ -43,6 +50,9 @@ Enterprise-ready multi-tenancy with granular access controls:
 - **Tenants** - Individual customers of your SaaS
 - **Members** - Invite team members with role-based permissions
 - **Row Level Security** - Postgres RLS ensures data isolation
+
+<img width="1680" height="961" alt="Screenshot 2026-02-01 at 12 57 20 PM" src="https://github.com/user-attachments/assets/1fa4c53d-858e-488f-a679-163ce9273715" />
+
 
 ### 🔑 API Access
 Programmatic access for your AI agents:
