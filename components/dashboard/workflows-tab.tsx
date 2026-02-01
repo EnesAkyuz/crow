@@ -19,6 +19,9 @@ import {
   MoreHorizontal,
   Wand2,
   Pencil,
+  Layers,
+  Map as MapIcon,
+  Bot,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -46,6 +49,9 @@ import type { Json } from "@/types";
 
 type StepType =
   | "web_scrape"
+  | "web_crawl"
+  | "web_map"
+  | "agent_extract"
   | "document_extract"
   | "ai_transform"
   | "webhook"
@@ -60,6 +66,16 @@ interface StepConfigData {
   email?: string;
   // AI Transform
   transformPrompt?: string;
+  // Web Crawl
+  limit?: number;
+  maxDepth?: number;
+  allowSubdomains?: boolean;
+  // Site Map
+  search?: string;
+  // Agent Extract
+  urls?: string;
+  prompt?: string;
+  enableWebSearch?: boolean;
 }
 
 interface WorkflowStep {
@@ -99,32 +115,55 @@ interface WorkflowsTabProps {
 
 const stepTypeInfo: Record<
   StepType,
-  { label: string; icon: LucideIcon; color: string }
+  { label: string; icon: LucideIcon; color: string; description: string }
 > = {
   web_scrape: {
     label: "Web Scrape",
     icon: Globe,
     color: "text-green-600 bg-green-500/10",
+    description: "Scrape a single page with structured extraction",
+  },
+  web_crawl: {
+    label: "Web Crawl",
+    icon: Layers,
+    color: "text-cyan-600 bg-cyan-500/10",
+    description: "Crawl multiple pages from a starting URL",
+  },
+  web_map: {
+    label: "Site Map",
+    icon: MapIcon,
+    color: "text-indigo-600 bg-indigo-500/10",
+    description: "Discover all URLs on a website",
+  },
+  agent_extract: {
+    label: "AI Agent",
+    icon: Bot,
+    color: "text-purple-600 bg-purple-500/10",
+    description: "FIRE-1 agent for complex multi-page extraction",
   },
   document_extract: {
     label: "Document",
     icon: FileText,
-    color: "text-purple-600 bg-purple-500/10",
+    color: "text-orange-600 bg-orange-500/10",
+    description: "Extract from PDFs and documents",
   },
   ai_transform: {
     label: "AI Transform",
     icon: Wand2,
-    color: "text-purple-600 bg-purple-500/10",
+    color: "text-pink-600 bg-pink-500/10",
+    description: "Transform data with AI prompts",
   },
   webhook: {
     label: "Webhook",
     icon: Send,
     color: "text-blue-600 bg-blue-500/10",
+    description: "POST extracted data to a URL",
   },
   email: {
     label: "Email",
     icon: Send,
-    color: "text-orange-600 bg-orange-500/10",
+    color: "text-rose-600 bg-rose-500/10",
+    description: "Send results via email",
   },
 };
 
@@ -306,6 +345,228 @@ function StepConfig({
               <Label className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-purple-500" />
                 Auto-extract PDFs (Agentic Handoff)
+              </Label>
+            </div>
+          </div>
+        )}
+
+        {/* Web Crawl Step */}
+        {step.type === "web_crawl" && (
+          <div className="space-y-3">
+            <div className="grid gap-2">
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Starting URL
+              </Label>
+              <Input
+                value={step.config.url || ""}
+                onChange={(e) =>
+                  onUpdate({ ...step.config, url: e.target.value })
+                }
+                placeholder="https://example.com"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Page Limit
+                </Label>
+                <Input
+                  type="number"
+                  value={step.config.limit || 10}
+                  onChange={(e) =>
+                    onUpdate({
+                      ...step.config,
+                      limit: parseInt(e.target.value) || 10,
+                    })
+                  }
+                  min={1}
+                  max={1000}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Max Depth
+                </Label>
+                <Input
+                  type="number"
+                  value={step.config.maxDepth || 3}
+                  onChange={(e) =>
+                    onUpdate({
+                      ...step.config,
+                      maxDepth: parseInt(e.target.value) || 3,
+                    })
+                  }
+                  min={1}
+                  max={10}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Schema (optional)
+              </Label>
+              <Select
+                value={step.config.schemaId || "none"}
+                onValueChange={(v) =>
+                  onUpdate({
+                    ...step.config,
+                    schemaId: v === "none" ? undefined : v,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="No schema (raw markdown)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No schema (raw markdown)</SelectItem>
+                  {schemas.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={step.config.allowSubdomains ?? false}
+                onCheckedChange={(v) =>
+                  onUpdate({ ...step.config, allowSubdomains: v })
+                }
+              />
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Include subdomains
+              </Label>
+            </div>
+          </div>
+        )}
+
+        {/* Site Map Step */}
+        {step.type === "web_map" && (
+          <div className="space-y-3">
+            <div className="grid gap-2">
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Website URL
+              </Label>
+              <Input
+                value={step.config.url || ""}
+                onChange={(e) =>
+                  onUpdate({ ...step.config, url: e.target.value })
+                }
+                placeholder="https://example.com"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Search Query (optional)
+              </Label>
+              <Input
+                value={step.config.search || ""}
+                onChange={(e) =>
+                  onUpdate({ ...step.config, search: e.target.value })
+                }
+                placeholder="e.g., pricing, docs, blog"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Filter discovered URLs by keyword
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                URL Limit
+              </Label>
+              <Input
+                type="number"
+                value={step.config.limit || 100}
+                onChange={(e) =>
+                  onUpdate({
+                    ...step.config,
+                    limit: parseInt(e.target.value) || 100,
+                  })
+                }
+                min={1}
+                max={5000}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* AI Agent Step */}
+        {step.type === "agent_extract" && (
+          <div className="space-y-3">
+            <div className="p-3 bg-purple-500/10 border border-purple-500/20">
+              <div className="flex items-center gap-2 mb-1">
+                <Bot className="w-4 h-4 text-purple-500" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-purple-500">
+                  FIRE-1 Agent
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                AI agent that navigates complex sites, follows links, and
+                extracts data autonomously
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Target URLs (one per line, or use wildcards like /*)
+              </Label>
+              <Textarea
+                value={step.config.urls || ""}
+                onChange={(e) =>
+                  onUpdate({ ...step.config, urls: e.target.value })
+                }
+                placeholder="https://example.com/*&#10;https://example.com/products"
+                rows={3}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Extraction Prompt
+              </Label>
+              <Textarea
+                value={step.config.prompt || ""}
+                onChange={(e) =>
+                  onUpdate({ ...step.config, prompt: e.target.value })
+                }
+                placeholder="Extract all product information including name, price, description, and specifications"
+                rows={3}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Schema (optional)
+              </Label>
+              <Select
+                value={step.config.schemaId || "none"}
+                onValueChange={(v) =>
+                  onUpdate({
+                    ...step.config,
+                    schemaId: v === "none" ? undefined : v,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Let AI decide structure" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Let AI decide structure</SelectItem>
+                  {schemas.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={step.config.enableWebSearch ?? false}
+                onCheckedChange={(v) =>
+                  onUpdate({ ...step.config, enableWebSearch: v })
+                }
+              />
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Enable web search for additional context
               </Label>
             </div>
           </div>
@@ -728,6 +989,247 @@ export function WorkflowsTab({
           }));
         }
       }
+
+      // Web Crawl step
+      if (step.type === "web_crawl") {
+        if (!step.config.url) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: { success: false, error: "URL is required" },
+          }));
+          setTestingStep(null);
+          return;
+        }
+
+        const response = await fetch("/api/crawl", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: step.config.url,
+            limit: step.config.limit || 10,
+            maxDepth: step.config.maxDepth || 3,
+            allowSubdomains: step.config.allowSubdomains || false,
+            schemaId: step.config.schemaId,
+            sessionId: step.config.sessionId,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: false,
+              error: data.error || "Crawl failed",
+            },
+          }));
+        } else {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: true,
+              data: {
+                pages: data.pages?.length || 0,
+                urls: data.pages?.map((p: { url: string }) => p.url) || [],
+                extractedData: data.extractedData,
+              },
+            },
+          }));
+          toast.success(`Crawled ${data.pages?.length || 0} pages`);
+        }
+      }
+
+      // Site Map step
+      if (step.type === "web_map") {
+        if (!step.config.url) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: { success: false, error: "URL is required" },
+          }));
+          setTestingStep(null);
+          return;
+        }
+
+        const response = await fetch("/api/map", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: step.config.url,
+            search: step.config.search,
+            limit: step.config.limit || 100,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: false,
+              error: data.error || "Map failed",
+            },
+          }));
+        } else {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: true,
+              data: {
+                urlCount: data.links?.length || 0,
+                links: data.links || [],
+              },
+            },
+          }));
+          toast.success(`Found ${data.links?.length || 0} URLs`);
+        }
+      }
+
+      // AI Agent (FIRE-1) step
+      if (step.type === "agent_extract") {
+        if (!step.config.urls || !step.config.prompt) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: false,
+              error: "URLs and prompt are required",
+            },
+          }));
+          setTestingStep(null);
+          return;
+        }
+
+        const urlList = step.config.urls
+          .split("\n")
+          .map((u: string) => u.trim())
+          .filter(Boolean);
+
+        const response = await fetch("/api/agent-extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            urls: urlList,
+            prompt: step.config.prompt,
+            schemaId: step.config.schemaId,
+            enableWebSearch: step.config.enableWebSearch || false,
+          }),
+        });
+
+        const data = await response.json();
+        console.log("Agent extract response:", data);
+
+        if (!response.ok) {
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: false,
+              error: data.error || "Agent extraction failed",
+            },
+          }));
+        } else if (data.async && data.jobId) {
+          // Async job - poll for results
+          toast.info(
+            "🤖 AI Agent started... polling for results (may take 30-60s)",
+          );
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: true,
+              data: {
+                _status: "processing",
+                _jobId: data.jobId,
+                _message: "Agent is navigating and extracting...",
+              },
+            },
+          }));
+
+          // Poll for results
+          let attempts = 0;
+          const maxAttempts = 60; // 2 minutes max
+          const pollInterval = 2000; // 2 seconds
+
+          const poll = async () => {
+            attempts++;
+            try {
+              const statusRes = await fetch(
+                `/api/agent-extract?jobId=${data.jobId}`,
+              );
+              const statusData = await statusRes.json();
+              console.log(`Poll attempt ${attempts}:`, statusData);
+
+              if (statusData.status === "completed") {
+                const resultData = statusData.data || { _raw: statusData };
+                setStepResults((prev) => ({
+                  ...prev,
+                  [step.id]: {
+                    success: true,
+                    data: Array.isArray(resultData)
+                      ? { results: resultData }
+                      : resultData,
+                  },
+                }));
+                toast.success("AI Agent extraction complete!");
+                setTestingStep(null);
+              } else if (statusData.status === "failed" || statusData.error) {
+                setStepResults((prev) => ({
+                  ...prev,
+                  [step.id]: {
+                    success: false,
+                    error: statusData.error || "Agent extraction failed",
+                  },
+                }));
+                setTestingStep(null);
+              } else if (attempts < maxAttempts) {
+                // Still processing, update status
+                setStepResults((prev) => ({
+                  ...prev,
+                  [step.id]: {
+                    success: true,
+                    data: {
+                      _status: "processing",
+                      _attempt: attempts,
+                      _message: `Agent working... (${attempts * 2}s)`,
+                    },
+                  },
+                }));
+                setTimeout(poll, pollInterval);
+              } else {
+                setStepResults((prev) => ({
+                  ...prev,
+                  [step.id]: {
+                    success: false,
+                    error: "Agent extraction timed out after 2 minutes",
+                  },
+                }));
+                setTestingStep(null);
+              }
+            } catch (pollErr) {
+              console.error("Poll error:", pollErr);
+              if (attempts < maxAttempts) {
+                setTimeout(poll, pollInterval);
+              }
+            }
+          };
+
+          setTimeout(poll, pollInterval);
+          return; // Don't call setTestingStep(null) yet
+        } else {
+          // Immediate result (sync)
+          const resultData = data.data || data;
+          console.log("Immediate result:", resultData);
+          setStepResults((prev) => ({
+            ...prev,
+            [step.id]: {
+              success: true,
+              data: Array.isArray(resultData)
+                ? { results: resultData }
+                : typeof resultData === "object"
+                  ? resultData
+                  : { value: resultData },
+            },
+          }));
+          toast.success("AI Agent extraction complete!");
+        }
+      }
     } catch (err) {
       setStepResults((prev) => ({
         ...prev,
@@ -815,9 +1317,48 @@ export function WorkflowsTab({
     setStepResults({});
   };
 
+  // Helper to update workflow run status
+  const updateRunStatus = async (
+    supabase: ReturnType<typeof createClient>,
+    runId: string | undefined,
+    status: "success" | "failed",
+    errorMessage: string | null,
+    results: Record<string, unknown> | null,
+  ) => {
+    if (!runId) return;
+    await supabase
+      .from("workflow_runs")
+      .update({
+        status,
+        completed_at: new Date().toISOString(),
+        error_message: errorMessage,
+        results: results as unknown as Json,
+      })
+      .eq("id", runId);
+  };
+
   const runWorkflow = async (workflow: SavedWorkflow) => {
     setRunning(workflow.id);
     let lastResult: Record<string, unknown> | null = null;
+    const supabase = createClient();
+
+    // Create workflow run record
+    const { data: user } = await supabase.auth.getUser();
+    const { data: runRecord, error: runError } = await supabase
+      .from("workflow_runs")
+      .insert({
+        workflow_id: workflow.id,
+        tenant_id: tenantId,
+        status: "running",
+        triggered_by: "manual",
+        triggered_by_user: user?.user?.id,
+      })
+      .select()
+      .single();
+
+    if (runError) {
+      console.error("Failed to create workflow run:", runError);
+    }
 
     try {
       const steps = workflow.workflow_definition;
@@ -826,6 +1367,13 @@ export function WorkflowsTab({
         if (step.type === "web_scrape") {
           if (!step.config.url || !step.config.schemaId) {
             toast.error("Web scrape step missing URL or schema");
+            await updateRunStatus(
+              supabase,
+              runRecord?.id,
+              "failed",
+              "Web scrape step missing URL or schema",
+              lastResult,
+            );
             setRunning(null);
             return;
           }
@@ -844,9 +1392,13 @@ export function WorkflowsTab({
           const data = await response.json();
           if (!response.ok) {
             toast.error(data.error || "Web scrape failed");
-
-            // Update workflow status
-            const supabase = createClient();
+            await updateRunStatus(
+              supabase,
+              runRecord?.id,
+              "failed",
+              data.error,
+              lastResult,
+            );
             await supabase
               .from("scheduled_workflows")
               .update({
@@ -869,6 +1421,154 @@ export function WorkflowsTab({
               `🪄 Agentic handoff: Extracted ${data.handoff.successful} PDF(s)`,
             );
           }
+        }
+
+        // Web Crawl step
+        if (step.type === "web_crawl") {
+          if (!step.config.url) {
+            toast.error("Web crawl step missing URL");
+            await updateRunStatus(
+              supabase,
+              runRecord?.id,
+              "failed",
+              "Web crawl step missing URL",
+              lastResult,
+            );
+            setRunning(null);
+            return;
+          }
+
+          const response = await fetch("/api/crawl", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url: step.config.url,
+              limit: step.config.limit || 10,
+              maxDepth: step.config.maxDepth || 3,
+              allowSubdomains: step.config.allowSubdomains || false,
+              schemaId: step.config.schemaId,
+              sessionId: step.config.sessionId,
+            }),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            toast.error(data.error || "Crawl failed");
+            await updateRunStatus(
+              supabase,
+              runRecord?.id,
+              "failed",
+              data.error,
+              lastResult,
+            );
+            setRunning(null);
+            fetchWorkflows();
+            return;
+          }
+
+          lastResult = {
+            pages: data.pages?.length || 0,
+            urls: data.pages?.map((p: { url: string }) => p.url) || [],
+            extractedData: data.extractedData,
+          };
+          toast.success(`Crawled ${data.pages?.length || 0} pages`);
+        }
+
+        // Site Map step
+        if (step.type === "web_map") {
+          if (!step.config.url) {
+            toast.error("Site map step missing URL");
+            await updateRunStatus(
+              supabase,
+              runRecord?.id,
+              "failed",
+              "Site map step missing URL",
+              lastResult,
+            );
+            setRunning(null);
+            return;
+          }
+
+          const response = await fetch("/api/map", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url: step.config.url,
+              search: step.config.search,
+              limit: step.config.limit || 100,
+            }),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            toast.error(data.error || "Map failed");
+            await updateRunStatus(
+              supabase,
+              runRecord?.id,
+              "failed",
+              data.error,
+              lastResult,
+            );
+            setRunning(null);
+            fetchWorkflows();
+            return;
+          }
+
+          lastResult = {
+            urlCount: data.links?.length || 0,
+            links: data.links || [],
+          };
+          toast.success(`Found ${data.links?.length || 0} URLs`);
+        }
+
+        // AI Agent (FIRE-1) step
+        if (step.type === "agent_extract") {
+          if (!step.config.urls || !step.config.prompt) {
+            toast.error("AI Agent step missing URLs or prompt");
+            await updateRunStatus(
+              supabase,
+              runRecord?.id,
+              "failed",
+              "AI Agent step missing URLs or prompt",
+              lastResult,
+            );
+            setRunning(null);
+            return;
+          }
+
+          const urlList = step.config.urls
+            .split("\n")
+            .map((u: string) => u.trim())
+            .filter(Boolean);
+
+          const response = await fetch("/api/agent-extract", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              urls: urlList,
+              prompt: step.config.prompt,
+              schemaId: step.config.schemaId,
+              enableWebSearch: step.config.enableWebSearch || false,
+            }),
+          });
+
+          const data = await response.json();
+          if (!response.ok) {
+            toast.error(data.error || "Agent extraction failed");
+            await updateRunStatus(
+              supabase,
+              runRecord?.id,
+              "failed",
+              data.error,
+              lastResult,
+            );
+            setRunning(null);
+            fetchWorkflows();
+            return;
+          }
+
+          lastResult = data.data || data;
+          toast.success("AI Agent extraction complete!");
         }
 
         if (step.type === "webhook" && lastResult) {
@@ -939,8 +1639,13 @@ export function WorkflowsTab({
           };
           if (!transformResponse.ok) {
             toast.error(transformData.error || "AI Transform failed");
-
-            const supabase = createClient();
+            await updateRunStatus(
+              supabase,
+              runRecord?.id,
+              "failed",
+              transformData.error || "AI Transform failed",
+              lastResult,
+            );
             await supabase
               .from("scheduled_workflows")
               .update({
@@ -965,8 +1670,14 @@ export function WorkflowsTab({
         }
       }
 
-      // Update workflow status
-      const supabase = createClient();
+      // Update workflow status on success
+      await updateRunStatus(
+        supabase,
+        runRecord?.id,
+        "success",
+        null,
+        lastResult,
+      );
       await supabase
         .from("scheduled_workflows")
         .update({
@@ -981,14 +1692,20 @@ export function WorkflowsTab({
       fetchWorkflows();
     } catch (err) {
       toast.error("Workflow failed");
-
-      const supabase = createClient();
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      await updateRunStatus(
+        supabase,
+        runRecord?.id,
+        "failed",
+        errorMsg,
+        lastResult,
+      );
       await supabase
         .from("scheduled_workflows")
         .update({
           last_run_at: new Date().toISOString(),
           last_run_status: "failed",
-          last_run_error: err instanceof Error ? err.message : "Unknown error",
+          last_run_error: errorMsg,
         })
         .eq("id", workflow.id);
 
@@ -1106,11 +1823,31 @@ export function WorkflowsTab({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => addStep("webhook")}
+                  onClick={() => addStep("web_crawl")}
                   className="text-[10px] uppercase tracking-widest"
                 >
-                  <Send className="w-3 h-3 mr-2 text-blue-600" />
-                  Webhook
+                  <Layers className="w-3 h-3 mr-2 text-emerald-600" />
+                  Web Crawl
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addStep("web_map")}
+                  className="text-[10px] uppercase tracking-widest"
+                >
+                  <MapIcon className="w-3 h-3 mr-2 text-cyan-600" />
+                  Site Map
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addStep("agent_extract")}
+                  className="text-[10px] uppercase tracking-widest border-purple-500/50 bg-purple-500/5"
+                >
+                  <Bot className="w-3 h-3 mr-2 text-purple-600" />
+                  AI Agent
                 </Button>
                 <Button
                   type="button"
@@ -1119,8 +1856,18 @@ export function WorkflowsTab({
                   onClick={() => addStep("ai_transform")}
                   className="text-[10px] uppercase tracking-widest"
                 >
-                  <Wand2 className="w-3 h-3 mr-2 text-purple-600" />
+                  <Wand2 className="w-3 h-3 mr-2 text-violet-600" />
                   AI Transform
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addStep("webhook")}
+                  className="text-[10px] uppercase tracking-widest"
+                >
+                  <Send className="w-3 h-3 mr-2 text-blue-600" />
+                  Webhook
                 </Button>
                 <Button
                   type="button"

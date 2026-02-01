@@ -12,6 +12,7 @@ import { TenantTabs } from "@/components/dashboard/tenant-tabs";
 import { ApiKeyManager } from "@/components/dashboard/api-key-manager";
 import { UsageAnalytics } from "@/components/dashboard/usage-analytics";
 import { WorkflowsTab } from "@/components/dashboard/workflows-tab";
+import { WorkflowRunsHistory } from "@/components/dashboard/workflow-runs-history";
 import { deleteTenantInvite } from "@/app/actions";
 import {
   SidebarInset,
@@ -278,6 +279,19 @@ export default async function TenantManagePage({
                   name: s.name,
                 }))}
               />
+            }
+            runsHistoryContent={
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-widest">
+                    Workflow Run History
+                  </h2>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    View past workflow executions and their results
+                  </p>
+                </div>
+                <WorkflowRunsHistory tenantId={tenantWithOrg.id} />
+              </div>
             }
             membersContent={
               <div className="space-y-6">

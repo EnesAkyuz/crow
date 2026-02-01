@@ -1,6 +1,14 @@
 "use client";
 
-import { Users, KeyRound, FileJson, Key, BarChart3, Play } from "lucide-react";
+import {
+  Users,
+  KeyRound,
+  FileJson,
+  Key,
+  BarChart3,
+  Play,
+  History,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TenantTabsProps {
@@ -10,6 +18,7 @@ interface TenantTabsProps {
   apiContent: React.ReactNode;
   analyticsContent: React.ReactNode;
   workflowsContent: React.ReactNode;
+  runsHistoryContent?: React.ReactNode;
 }
 
 export function TenantTabs({
@@ -19,6 +28,7 @@ export function TenantTabs({
   apiContent,
   analyticsContent,
   workflowsContent,
+  runsHistoryContent,
 }: TenantTabsProps) {
   return (
     <Tabs defaultValue="analytics" className="w-full min-w-0">
@@ -36,6 +46,13 @@ export function TenantTabs({
         >
           <Play className="w-3 h-3 mr-2" />
           Workflows
+        </TabsTrigger>
+        <TabsTrigger
+          value="runs"
+          className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3 text-[10px] uppercase tracking-widest font-bold"
+        >
+          <History className="w-3 h-3 mr-2" />
+          Run History
         </TabsTrigger>
         <TabsTrigger
           value="members"
@@ -73,6 +90,10 @@ export function TenantTabs({
 
       <TabsContent value="workflows" className="mt-6">
         {workflowsContent}
+      </TabsContent>
+
+      <TabsContent value="runs" className="mt-6">
+        {runsHistoryContent}
       </TabsContent>
 
       <TabsContent value="members" className="mt-6">

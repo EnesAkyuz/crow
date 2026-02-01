@@ -10,6 +10,7 @@ import {
   User,
   Monitor,
   BookOpen,
+  Activity,
 } from "lucide-react";
 import { CheckExpiringSessionsButton } from "@/components/dashboard/check-expiring-sessions-button";
 
@@ -124,6 +125,14 @@ export function AppSidebar({ user }: { user: any }) {
                 <a href="/dashboard/docs">
                   <BookOpen className="size-4" />
                   <span className="font-medium">API Docs</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Monitoring" className="h-10">
+                <a href="/dashboard/monitoring">
+                  <Activity className="size-4" />
+                  <span className="font-medium">Monitoring</span>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
