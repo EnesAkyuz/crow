@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { decrypt } from "@/lib/encryption";
 
 const requestSchema = z.object({
   schemaId: z.string().uuid(),
   documentUrl: z.string().url().optional(),
   documentBase64: z.string().optional(),
   filename: z.string(),
-  sessionId: z.string().uuid().optional(), // Optional: use vault session cookies to fetch authenticated URLs
 });
 
 /**
@@ -58,32 +56,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const { schemaId, documentUrl, documentBase64, filename, sessionId } =
-    parsed.data;
+  const { schemaId, documentUrl, documentBase64, filename } = parsed.data;
 
   if (!documentUrl && !documentBase64) {
     return NextResponse.json(
       { error: "Either documentUrl or documentBase64 is required" },
       { status: 400 },
     );
-  }
-
-  // If sessionId provided, fetch the vault session for authenticated requests
-  let sessionCookies: string | null = null;
-  if (sessionId && documentUrl) {
-    const { data: vaultSession } = await supabase
-      .from("vault_sessions")
-      .select("encrypted_cookies")
-      .eq("id", sessionId)
-      .single();
-
-    if (vaultSession?.encrypted_cookies) {
-      try {
-        sessionCookies = decrypt(vaultSession.encrypted_cookies);
-      } catch {
-        console.error("Failed to decrypt session cookies");
-      }
-    }
   }
 
   // Fetch the extraction schema
